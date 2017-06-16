@@ -3,4 +3,4 @@ before_script:
   - ./install_tarantool.sh
 language: java
 jdk:
-  - openjdk8
+  - oraclejdk8
