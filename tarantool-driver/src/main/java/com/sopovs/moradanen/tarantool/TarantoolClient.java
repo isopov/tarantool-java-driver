@@ -42,12 +42,12 @@ public class TarantoolClient implements Closeable {
 	}
 
 	public ImmutableValue[] selectAll(int space, int limit) throws IOException {
-		return selectAll(space, 0, limit, 0);
+		return selectAll(space, limit, 0);
 	}
 
 	public int space(String space) throws IOException {
 
-		ImmutableValue[] result = selectByString(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
+		ImmutableValue[] result = select(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
 		if (result.length == 0) {
 			throw new IOException("No such space " + space);
 		}
@@ -57,11 +57,23 @@ public class TarantoolClient implements Closeable {
 		return result[0].asArrayValue().list().get(0).asIntegerValue().asInt();
 	}
 
-	public ImmutableValue[] selectByString(int space, String key, int index) throws IOException {
-		return selectByString(space, key, index, Integer.MAX_VALUE, 0);
+	public ImmutableValue[] select(int space, String key, int index) throws IOException {
+		return select(space, key, index, Integer.MAX_VALUE, 0);
 	}
 
-	public ImmutableValue[] selectByString(int space, String key, int index, int limit, int offset) throws IOException {
+	public ImmutableValue[] eval(String expression) throws IOException {
+		writeCode(Util.CODE_EVAL);
+		packer.packMapHeader(2);
+		packer.packInt(Util.KEY_EXPRESSION);
+		packer.packString(expression);
+		packer.packInt(Util.KEY_TUPLE);
+		packer.packArrayHeader(0);
+		writePacket();
+		return readResponce();
+		
+	}
+
+	public ImmutableValue[] select(int space, String key, int index, int limit, int offset) throws IOException {
 		selectStart(space, index);
 		packer.packInt(Util.KEY_KEY);
 		packer.packArrayHeader(1);
@@ -69,8 +81,16 @@ public class TarantoolClient implements Closeable {
 		return selectEnd(limit, offset);
 	}
 
-	public ImmutableValue[] selectAll(int space, int index, int limit, int offset) throws IOException {
+	public ImmutableValue[] select(int space, int key, int index, int limit, int offset) throws IOException {
 		selectStart(space, index);
+		packer.packInt(Util.KEY_KEY);
+		packer.packArrayHeader(1);
+		packer.packInt(key);
+		return selectEnd(limit, offset);
+	}
+
+	public ImmutableValue[] selectAll(int space, int limit, int offset) throws IOException {
+		selectStart(space, 0);
 		packer.packInt(Util.KEY_KEY);
 		packer.packArrayHeader(0);
 		return selectEnd(limit, offset);
@@ -84,6 +104,10 @@ public class TarantoolClient implements Closeable {
 		packer.packInt(offset);
 
 		writePacket();
+		return readResponce();
+	}
+
+	private ImmutableValue[] readResponce() throws IOException {
 		unpacker.unpackInt();
 		unpackHeader();
 		int bodySize = unpacker.unpackMapHeader();
@@ -108,11 +132,7 @@ public class TarantoolClient implements Closeable {
 	}
 
 	private void selectStart(int space, int index) throws IOException {
-		packer.packMapHeader(2);
-		packer.packInt(Util.KEY_CODE);
-		packer.packInt(Util.CODE_SELECT);
-		packer.packInt(Util.KEY_SYNC);
-		packer.packInt(++counter);
+		writeCode(Util.CODE_SELECT);
 
 		packer.packMapHeader(6);
 		packer.packInt(Util.KEY_SPACE);
@@ -123,6 +143,14 @@ public class TarantoolClient implements Closeable {
 		// TODO
 		packer.packInt(Util.KEY_ITERATOR);
 		packer.packInt(0);
+	}
+
+	private void writeCode(int code) throws IOException {
+		packer.packMapHeader(2);
+		packer.packInt(Util.KEY_CODE);
+		packer.packInt(code);
+		packer.packInt(Util.KEY_SYNC);
+		packer.packInt(++counter);
 	}
 
 	private void writePacket() throws IOException {
@@ -149,9 +177,15 @@ public class TarantoolClient implements Closeable {
 	private void unpackHeader() throws IOException {
 		int headerSize = unpacker.unpackMapHeader();
 		for (int i = 0; i < headerSize; i++) {
-			// TODO what to do with the header?
-			unpacker.unpackByte();
-			unpacker.unpackInt();
+			byte key = unpacker.unpackByte();
+			if (key == Util.KEY_SYNC) {
+				int sync = unpacker.unpackInt();
+				if (sync != counter) {
+					throw new IOException("Expected responce to " + counter + " and came to " + sync);
+				}
+			}else{
+				unpacker.unpackInt();
+			}
 		}
 	}
 
@@ -159,6 +193,7 @@ public class TarantoolClient implements Closeable {
 		unpacker.readPayload(ByteBuffer.allocate(128));
 	}
 
+	@Override
 	public void close() throws IOException {
 		socket.close();
 	}

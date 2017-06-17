@@ -60,4 +60,13 @@ public class TarantoolClientTest {
 		}
 	}
 	
+	@Test
+	public void testEval() throws IOException{
+		try (TarantoolClient client = new TarantoolClient("localhost")) {
+			client.eval("box.schema.space.create('javatest')");
+			client.eval("box.space.javatest:drop()");
+		}
+	}
+	
+	
 }
