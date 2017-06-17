@@ -8,36 +8,38 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class TarantoolClientTest {
-    @Rule
-    public ExpectedException thrown= ExpectedException.none();
-	
+public class TarantoolClientImplTest {
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
 
 	@Test
 	public void testConnect() throws IOException {
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 		}
 	}
 
 	@Test
-	public void testSelect() throws IOException {
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
-			assertEquals(10, client.selectAll(281, 10).length);
+	public void testSelect() {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				Result result = client.selectAll(Util.SPACE_VSPACE, 10)) {
+			assertEquals(10, result.getSize());
 		}
 	}
 
 	@Test
 	public void testManySelects() throws IOException {
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			for (int i = 1; i <= 10; i++) {
-				assertEquals(i, client.selectAll(281, i).length);
+				try (Result result = client.selectAll(Util.SPACE_VSPACE, i)) {
+					assertEquals(i, result.getSize());
+				}
 			}
 		}
 	}
-	
+
 	@Test
 	public void testSpace() throws IOException {
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			assertEquals(Util.SPACE_SCHEMA, client.space("_schema"));
 			assertEquals(Util.SPACE_SPACE, client.space("_space"));
 			assertEquals(Util.SPACE_INDEX, client.space("_index"));
@@ -50,23 +52,24 @@ public class TarantoolClientTest {
 			assertEquals(Util.SPACE_CLUSTER, client.space("_cluster"));
 		}
 	}
-	
+
 	@Test
 	public void testNoSpace() throws IOException {
-		thrown.expect(IOException.class);
+		thrown.expect(TarantoolException.class);
 		thrown.expectMessage("No such space no_such_space");
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			client.space("no_such_space");
 		}
 	}
-	
+
 	@Test
-	public void testEval() throws IOException{
-		try (TarantoolClient client = new TarantoolClient("localhost")) {
-			client.eval("box.schema.space.create('javatest')");
-			client.eval("box.space.javatest:drop()");
+	public void testEval() throws IOException {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				Result result1 = client.eval("box.schema.space.create('javatest')");
+				Result result2 = client
+						.eval("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
+				Result result3 = client.eval("box.space.javatest:drop()")) {
 		}
 	}
-	
-	
+
 }
