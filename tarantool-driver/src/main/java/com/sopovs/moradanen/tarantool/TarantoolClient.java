@@ -6,15 +6,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.msgpack.core.buffer.MessageBuffer;
 import org.msgpack.value.ImmutableValue;
 
 public class TarantoolClient implements Closeable {
-	private static final byte[] EMPTY_FIVE_BYTES = new byte[5];
-
 	private final Socket socket;
 	private final MessageUnpacker unpacker;
 	private final MessageBufferPacker packer;
@@ -126,13 +126,24 @@ public class TarantoolClient implements Closeable {
 	}
 
 	private void writePacket() throws IOException {
-		// TODO eliminate bytes copy for perf
-		byte[] bytes = packer.toByteArray();
+		List<MessageBuffer> bufferList = packer.toBufferList();
+		writeSize(bufferList);
+		for (int i = 0; i < bufferList.size(); i++) {
+			MessageBuffer messageBuffer = bufferList.get(i);
+			out.write(messageBuffer.toByteArray());
+		}
 		packer.clear();
-		out.writeByte(MessagePack.Code.UINT32);
-		out.writeInt(bytes.length);
-		out.write(bytes);
 		out.flush();
+	}
+
+	private void writeSize(List<MessageBuffer> bufferList) throws IOException {
+		out.writeByte(MessagePack.Code.UINT32);
+		int size = 0;
+		for (int i = 0; i < bufferList.size(); i++) {
+			MessageBuffer messageBuffer = bufferList.get(i);
+			size += messageBuffer.size();
+		}
+		out.writeInt(size);
 	}
 
 	private void unpackHeader() throws IOException {
