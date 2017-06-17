@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.msgpack.value.ImmutableValue;
 
 public class TarantoolClient implements Closeable {
 	private static final byte[] EMPTY_FIVE_BYTES = new byte[5];
@@ -31,48 +32,58 @@ public class TarantoolClient implements Closeable {
 	public TarantoolClient(Socket socket) throws IOException {
 		this.socket = socket;
 		packer = MessagePack.newDefaultBufferPacker();
-		// packer = MessagePack.newDefaultPacker(socket.getOutputStream());
 		unpacker = MessagePack.newDefaultUnpacker(socket.getInputStream());
 		out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 		connect();
 	}
 
-	public Object[] select(int space, int limit) throws IOException {
-		packer.addPayload(EMPTY_FIVE_BYTES);
+	public ImmutableValue[] selectAll(int space) throws IOException {
+		return selectAll(space, Integer.MAX_VALUE);
+	}
 
-		packer.packMapHeader(2);
-		packer.packInt(Util.KEY_CODE);
-		packer.packInt(Util.CODE_SELECT);
-		packer.packInt(Util.KEY_SYNC);
-		packer.packInt(++counter);
+	public ImmutableValue[] selectAll(int space, int limit) throws IOException {
+		return selectAll(space, 0, limit, 0);
+	}
 
-		packer.packMapHeader(6);
-		packer.packInt(Util.KEY_SPACE);
-		packer.packInt(space);
+	public int space(String space) throws IOException {
 
-		// TODO
-		packer.packInt(Util.KEY_INDEX);
-		packer.packInt(0);
+		ImmutableValue[] result = selectByString(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
+		if (result.length == 0) {
+			throw new IOException("No such space " + space);
+		}
+		if (result.length != 1) {
+			throw new IOException("Unexpected result length " + result.length);
+		}
+		return result[0].asArrayValue().list().get(0).asIntegerValue().asInt();
+	}
 
+	public ImmutableValue[] selectByString(int space, String key, int index) throws IOException {
+		return selectByString(space, key, index, Integer.MAX_VALUE, 0);
+	}
+
+	public ImmutableValue[] selectByString(int space, String key, int index, int limit, int offset) throws IOException {
+		selectStart(space, index);
+		packer.packInt(Util.KEY_KEY);
+		packer.packArrayHeader(1);
+		packer.packString(key);
+		return selectEnd(limit, offset);
+	}
+
+	public ImmutableValue[] selectAll(int space, int index, int limit, int offset) throws IOException {
+		selectStart(space, index);
 		packer.packInt(Util.KEY_KEY);
 		packer.packArrayHeader(0);
+		return selectEnd(limit, offset);
+	}
 
-		packer.packInt(Util.KEY_ITERATOR);
-		packer.packInt(0);
-
+	private ImmutableValue[] selectEnd(int limit, int offset) throws IOException {
 		packer.packInt(Util.KEY_LIMIT);
 		packer.packInt(limit);
 
-		// TODO
 		packer.packInt(Util.KEY_OFFSET);
-		packer.packInt(0);
+		packer.packInt(offset);
 
-		byte[] bytes = packer.toByteArray();
-		packer.clear();
-		writeSize(bytes);
-		out.write(bytes);
-		out.flush();
-
+		writePacket();
 		unpacker.unpackInt();
 		unpackHeader();
 		int bodySize = unpacker.unpackMapHeader();
@@ -83,18 +94,45 @@ public class TarantoolClient implements Closeable {
 
 		byte bodyKey = unpacker.unpackByte();
 		if (bodyKey == Util.KEY_DATA) {
-			Object[] result = new Object[unpacker.unpackArrayHeader()];
+			ImmutableValue[] result = new ImmutableValue[unpacker.unpackArrayHeader()];
 			for (int i = 0; i < result.length; i++) {
-				result[i] = unpacker.unpackValue();	
+				result[i] = unpacker.unpackValue();
 			}
 			return result;
 		} else if (bodyKey == Util.KEY_ERROR) {
 			// TODO Other exception?
 			throw new IOException(unpacker.unpackString());
-		}else{
+		} else {
 			throw new IOException("Unknown body Key " + bodyKey);
 		}
+	}
 
+	private void selectStart(int space, int index) throws IOException {
+		packer.packMapHeader(2);
+		packer.packInt(Util.KEY_CODE);
+		packer.packInt(Util.CODE_SELECT);
+		packer.packInt(Util.KEY_SYNC);
+		packer.packInt(++counter);
+
+		packer.packMapHeader(6);
+		packer.packInt(Util.KEY_SPACE);
+		packer.packInt(space);
+		packer.packInt(Util.KEY_INDEX);
+		packer.packInt(index);
+
+		// TODO
+		packer.packInt(Util.KEY_ITERATOR);
+		packer.packInt(0);
+	}
+
+	private void writePacket() throws IOException {
+		// TODO eliminate bytes copy for perf
+		byte[] bytes = packer.toByteArray();
+		packer.clear();
+		out.writeByte(MessagePack.Code.UINT32);
+		out.writeInt(bytes.length);
+		out.write(bytes);
+		out.flush();
 	}
 
 	private void unpackHeader() throws IOException {
@@ -104,18 +142,6 @@ public class TarantoolClient implements Closeable {
 			unpacker.unpackByte();
 			unpacker.unpackInt();
 		}
-	}
-
-	private static void writeSize(byte[] bytes) {
-		bytes[0] = MessagePack.Code.UINT32;
-		// TODO do without allocation
-		ByteBuffer buffer = ByteBuffer.allocate(4);
-		buffer.putInt(bytes.length - 5);
-		byte[] size = buffer.array();
-		bytes[1] = size[0];
-		bytes[2] = size[1];
-		bytes[3] = size[2];
-		bytes[4] = size[3];
 	}
 
 	private void connect() throws IOException {

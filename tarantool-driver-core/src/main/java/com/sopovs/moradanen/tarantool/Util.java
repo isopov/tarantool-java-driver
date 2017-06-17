@@ -36,4 +36,20 @@ public final class Util {
 	public static final int KEY_UPSERT_OPS = 0x28;
 	public static final int KEY_DATA = 0x30;
 	public static final int KEY_ERROR = 0x31;
+
+	public static final int SPACE_SCHEMA = 272;
+	public static final int SPACE_SPACE = 280;
+	public static final int SPACE_INDEX = 288;
+	public static final int SPACE_FUNC = 296;
+	public static final int SPACE_VSPACE = 281;
+	public static final int SPACE_VINDEX = 289;
+	public static final int SPACE_VFUNC = 297;
+	public static final int SPACE_USER = 304;
+	public static final int SPACE_PRIV = 312;
+	public static final int SPACE_CLUSTER = 320;
+
+	public static final int INDEX_SPACE_PRIMARY = 0;
+	public static final int INDEX_SPACE_NAME = 2;
+	public static final int INDEX_INDEX_PRIMARY = 0;
+	public static final int INDEX_INDEX_NAME = 2;
 }
