@@ -25,6 +25,14 @@ public class TarantoolClientImplTest {
 			assertEquals(10, result.getSize());
 		}
 	}
+	
+	@Test
+	public void testSelectByName(){
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				Result result = client.selectAll("_vspace", 3)) {
+			assertEquals(3, result.getSize());
+		}
+	}
 
 	@Test
 	public void testManySelects() throws IOException {
