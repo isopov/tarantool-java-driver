@@ -2,32 +2,27 @@ package com.sopovs.moradanen.tarantool;
 
 public interface TarantoolClient {
 
-	default Result selectAll(int space, int limit, int offset) {
-		return select(space, TupleWriter.EMPTY, 0, limit, offset);
+	Result execute();
+
+	void addBatch();
+
+	void executeBatch();
+
+	default void selectAll(int space, int limit, int offset) {
+		select(space, TupleWriter.EMPTY, 0, limit, offset);
 	}
 
-	default Result selectAll(String space, int limit, int offset) {
-		return selectAll(space(space), limit, offset);
+	default void selectAll(int space, int limit) {
+		selectAll(space, limit, 0);
 	}
 
-	default Result selectAll(int space) {
-		return selectAll(space, Integer.MAX_VALUE);
-	}
-
-	default Result selectAll(String space) {
-		return selectAll(space(space), Integer.MAX_VALUE);
-	}
-
-	default Result selectAll(int space, int limit) {
-		return selectAll(space, limit, 0);
-	}
-
-	default Result selectAll(String space, int limit) {
-		return selectAll(space(space), limit, 0);
+	default void selectAll(String space, int limit) {
+		selectAll(space(space), limit, 0);
 	}
 
 	default int space(String space) {
-		Result result = select(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
+		select(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
+		Result result = execute();
 		if (result.getSize() == 0) {
 			throw new TarantoolException("No such space " + space);
 		}
@@ -38,86 +33,75 @@ public interface TarantoolClient {
 		return result.getInt(0);
 	}
 
-	Result select(int space, TupleWriter keyWriter, int index, int limit, int offset);
+	void select(int space, TupleWriter keyWriter, int index, int limit, int offset);
 
-	default Result select(int space, String key, int index, int limit, int offset) {
-		return select(space, TupleWriter.string(key), index, limit, offset);
+	default void select(int space, String key, int index, int limit, int offset) {
+		select(space, TupleWriter.string(key), index, limit, offset);
 	}
 
-	default Result select(String space, String key, int index, int limit, int offset) {
-		return select(space(space), key, index, limit, offset);
+	default void select(String space, String key, int index, int limit, int offset) {
+		select(space(space), key, index, limit, offset);
 	}
 
-	default Result select(int space, String key, int index) {
-		return select(space, key, index, Integer.MAX_VALUE, 0);
+	default void select(int space, String key, int index) {
+		select(space, key, index, Integer.MAX_VALUE, 0);
 	}
 
-	default Result select(String space, String key, int index) {
-		return select(space(space), key, index, Integer.MAX_VALUE, 0);
+	default void select(int space, int key, int index, int limit, int offset) {
+		select(space, TupleWriter.integer(key), index, limit, offset);
 	}
 
-	default Result select(int space, String key, int index, int limit) {
-		return select(space, key, index, limit, 0);
+	default void select(String space, int key, int index) {
+		select(space(space), key, index, Integer.MAX_VALUE, 0);
 	}
 
-	default Result select(String space, String key, int index, int limit) {
-		return select(space(space), key, index, limit, 0);
+	default void select(int space, int key, int index, int limit) {
+		select(space, key, index, limit, 0);
 	}
 
-	default Result select(int space, int key, int index, int limit, int offset) {
-		return select(space, TupleWriter.integer(key), index, limit, offset);
+	default void select(String space, int key, int index, int limit) {
+		select(space(space), key, index, limit, 0);
 	}
 
-	default Result select(int space, int key, int index) {
-		return select(space, key, index, Integer.MAX_VALUE, 0);
+	void eval(String expression, TupleWriter tupleWriter);
+
+	default void eval(String expression) {
+		eval(expression, TupleWriter.EMPTY);
 	}
 
-	default Result select(String space, int key, int index) {
-		return select(space(space), key, index, Integer.MAX_VALUE, 0);
+	default Result evalFully(String expression) {
+		eval(expression);
+		return execute();
 	}
 
-	default Result select(int space, int key, int index, int limit) {
-		return select(space, key, index, limit, 0);
+	void insert(int space, TupleWriter tupleWriter);
+
+	default void insert(String space, TupleWriter tupleWriter) {
+		insert(space(space), tupleWriter);
 	}
 
-	default Result select(String space, int key, int index, int limit) {
-		return select(space(space), key, index, limit, 0);
+	void replace(int space, TupleWriter tupleWriter);
+
+	default void replace(String space, TupleWriter tupleWriter) {
+		replace(space(space), tupleWriter);
 	}
 
-	Result eval(String expression, TupleWriter tupleWriter);
+	void delete(int space, TupleWriter keyWriter, int index);
 
-	default Result eval(String expression) {
-		return eval(expression, TupleWriter.EMPTY);
+	default void delete(String space, TupleWriter keyWriter, int index) {
+		delete(space(space), keyWriter, index);
 	}
 
-	Result insert(int space, TupleWriter tupleWriter);
-
-	default Result insert(String space, TupleWriter tupleWriter) {
-		return insert(space(space), tupleWriter);
+	default void delete(String space, int key, int index) {
+		delete(space(space), TupleWriter.integer(key), index);
 	}
 
-	Result replace(int space, TupleWriter tupleWriter);
-
-	default Result replace(String space, TupleWriter tupleWriter) {
-		return replace(space(space), tupleWriter);
+	default void delete(String space, int key) {
+		delete(space(space), TupleWriter.integer(key), 0);
 	}
 
-	Result delete(int space, TupleWriter keyWriter, int index);
-
-	default Result delete(String space, TupleWriter keyWriter, int index) {
-		return delete(space(space), keyWriter, index);
-	}
-
-	default Result delete(String space, int key, int index) {
-		return delete(space(space), TupleWriter.integer(key), index);
-	}
-
-	default Result delete(String space, int key) {
-		return delete(space(space), TupleWriter.integer(key), 0);
-	}
-
-	default Result delete(String space, TupleWriter keyWriter) {
-		return delete(space(space), keyWriter, 0);
+	default void delete(String space, TupleWriter keyWriter) {
+		delete(space(space), keyWriter, 0);
 	}
 
 	void ping();

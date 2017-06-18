@@ -27,7 +27,9 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testSelect() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			Result result = client.selectAll(Util.SPACE_VSPACE, 10);
+
+			client.selectAll(Util.SPACE_VSPACE, 10);
+			Result result = client.execute();
 			assertEquals(10, result.getSize());
 			result.consume();
 			assertFalse(result.hasNext());
@@ -37,7 +39,8 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testSelectByName() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			Result result = client.selectAll("_vspace", 3);
+			client.selectAll("_vspace", 3);
+			Result result = client.execute();
 			assertEquals(3, result.getSize());
 			result.consume();
 			assertFalse(result.hasNext());
@@ -48,7 +51,8 @@ public class TarantoolClientImplTest {
 	public void testManySelects() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			for (int i = 1; i <= 10; i++) {
-				Result result = client.selectAll(Util.SPACE_VSPACE, i);
+				client.selectAll(Util.SPACE_VSPACE, i);
+				Result result = client.execute();
 				assertEquals(i, result.getSize());
 				result.consume();
 				assertFalse(result.hasNext());
@@ -94,7 +98,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testInsert() throws Exception {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.eval("box.space.javatest:drop()")) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
 		}
 	}
@@ -102,34 +106,71 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testDelete() throws Exception {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.eval("box.space.javatest:drop()")) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
-			Result update = client.delete("javatest", TupleWriter.integer(1));
-			assertEquals(1, update.getSize());
-			update.consume();
+			client.delete("javatest", TupleWriter.integer(1));
+			Result delete = client.execute();
+			assertEquals(1, delete.getSize());
+			delete.consume();
 
-			Result select = client.select("javatest", 1, 0);
+			client.select("javatest", 1, 0);
+			Result select = client.execute();
 			assertEquals(0, select.getSize());
 		}
 	}
 
 	private static void insertInternal(TarantoolClientImpl client) {
-		client.eval("box.schema.space.create('javatest')");
-		client.eval("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
+		createTestSpace(client);
 
-		Result insert = client.insert("javatest", tuple -> {
+		client.insert("javatest", tuple -> {
 			tuple.writeSize(2);
 			tuple.writeInt(1);
 			tuple.writeString("Foobar");
 		});
+		Result insert = client.execute();
 		assertEquals(1, insert.getSize());
 		insert.consume();
 
-		Result select = client.select("javatest", 1, 0);
+		client.select("javatest", 1, 0);
+		Result select = client.execute();
 		assertEquals(1, select.getSize());
 		select.next();
 		assertEquals(1, select.getInt(0));
 		assertEquals("Foobar", select.getString(1));
+	}
+
+	private static void createTestSpace(TarantoolClientImpl client) {
+		client.evalFully("box.schema.space.create('javatest')").consume();
+		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
+				.consume();
+	}
+
+	@Test
+	public void testInsertBatch() throws Exception {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			createTestSpace(client);
+			for (int i = 0; i < 10; i++) {
+				int id = i;
+				client.insert("javatest", tuple -> {
+					tuple.writeSize(2);
+					tuple.writeInt(id);
+					tuple.writeString("Foo" + id);
+				});
+
+				client.addBatch();
+			}
+
+			client.executeBatch();
+
+			for (int i = 0; i < 10; i++) {
+				client.select("javatest", i, 0);
+				Result first = client.execute();
+				assertEquals(1, first.getSize());
+				first.consume();
+			}
+
+		}
 	}
 
 }

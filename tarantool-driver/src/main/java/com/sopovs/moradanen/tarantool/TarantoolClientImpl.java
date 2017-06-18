@@ -21,6 +21,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	private final DataOutputStream out;
 	private int counter;
 	private Result last;
+	private int batchSize = 0;
 
 	public TarantoolClientImpl(String host) {
 		this(host, 3301);
@@ -52,8 +53,60 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		}
 	}
 
+	private Result execute(boolean batch) {
+		try {
+			int bodySize = flushAndGetResultSize(batch);
+			if (1 != bodySize) {
+				throw new TarantoolException("Body size is " + bodySize);
+			}
+
+			byte bodyKey = unpacker.unpackByte();
+			if (bodyKey == Util.KEY_DATA) {
+				return last = new Result(unpacker);
+			} else if (bodyKey == Util.KEY_ERROR) {
+				throw new TarantoolException(unpacker.unpackString());
+			} else {
+				throw new TarantoolException("Unknown body Key " + bodyKey);
+			}
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
 	@Override
-	public Result eval(String expression, TupleWriter tupleWriter) {
+	public Result execute() {
+		if (batchSize > 0) {
+			executeBatch();
+		}
+		return execute(false);
+	}
+
+	private int flushAndGetResultSize(boolean batch) throws IOException {
+		out.flush();
+
+		// TODO expose byte size to Result?
+		unpacker.unpackInt();
+		unpackHeader(batch);
+		int bodySize = unpacker.unpackMapHeader();
+		return bodySize;
+	}
+
+	@Override
+	public void addBatch() {
+		batchSize++;
+	}
+
+	@Override
+	public void executeBatch() {
+		for (int i = 0; i < batchSize; i++) {
+			Result result = execute(true);
+			result.consume();
+		}
+		batchSize = 0;
+	}
+
+	@Override
+	public void eval(String expression, TupleWriter tupleWriter) {
 		try {
 			writeCode(Util.CODE_EVAL);
 			packer.packMapHeader(2);
@@ -61,14 +114,14 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packString(expression);
 			packer.packInt(Util.KEY_TUPLE);
 			tupleWriter.writeTuple(tuple);
-			return finishQueryAndRead();
+			finishQuery();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
 	@Override
-	public Result select(int space, TupleWriter keyWriter, int index, int limit, int offset) {
+	public void select(int space, TupleWriter keyWriter, int index, int limit, int offset) {
 		try {
 			writeCode(Util.CODE_SELECT);
 
@@ -89,29 +142,13 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packInt(Util.KEY_OFFSET);
 			packer.packInt(offset);
 
-			return finishQueryAndRead();
+			finishQuery();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
-	private Result finishQueryAndRead() throws IOException {
-		int bodySize = finishQuery();
-		if (1 != bodySize) {
-			throw new TarantoolException("Body size is " + bodySize);
-		}
-
-		byte bodyKey = unpacker.unpackByte();
-		if (bodyKey == Util.KEY_DATA) {
-			return last = new Result(unpacker);
-		} else if (bodyKey == Util.KEY_ERROR) {
-			throw new TarantoolException(unpacker.unpackString());
-		} else {
-			throw new TarantoolException("Unknown body Key " + bodyKey);
-		}
-	}
-
-	private int finishQuery() throws IOException {
+	private void finishQuery() throws IOException {
 		List<MessageBuffer> bufferList = packer.toBufferList();
 		writeSize(bufferList);
 		for (int i = 0; i < bufferList.size(); i++) {
@@ -119,13 +156,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			out.write(messageBuffer.toByteArray());
 		}
 		packer.clear();
-		out.flush();
 
-		// TODO expose byte size to Result?
-		unpacker.unpackInt();
-		unpackHeader();
-		int bodySize = unpacker.unpackMapHeader();
-		return bodySize;
 	}
 
 	private void writeCode(int code) throws IOException {
@@ -149,14 +180,18 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		out.writeInt(size);
 	}
 
-	private void unpackHeader() throws IOException {
+	private void unpackHeader(boolean batch) throws IOException {
 		int headerSize = unpacker.unpackMapHeader();
 		for (int i = 0; i < headerSize; i++) {
 			byte key = unpacker.unpackByte();
 			if (key == Util.KEY_SYNC) {
 				int sync = unpacker.unpackInt();
-				if (sync != counter) {
-					throw new TarantoolException("Expected responce to " + counter + " and came to " + sync);
+				if (batch) {
+					if (sync > counter) {
+						throw new TarantoolException("Expected sync <= " + counter + " and came " + sync);
+					}
+				} else if (sync != counter) {
+					throw new TarantoolException("Expected sync = " + counter + " and came " + sync);
 				}
 			} else {
 				unpacker.unpackInt();
@@ -178,16 +213,16 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	}
 
 	@Override
-	public Result insert(int space, TupleWriter tupleWriter) {
-		return insertOrReplace(Util.CODE_INSERT, space, tupleWriter);
+	public void insert(int space, TupleWriter tupleWriter) {
+		insertOrReplace(Util.CODE_INSERT, space, tupleWriter);
 	}
 
 	@Override
-	public Result replace(int space, TupleWriter tupleWriter) {
-		return insertOrReplace(Util.CODE_REPLACE, space, tupleWriter);
+	public void replace(int space, TupleWriter tupleWriter) {
+		insertOrReplace(Util.CODE_REPLACE, space, tupleWriter);
 	}
 
-	private Result insertOrReplace(int code, int space, TupleWriter tupleWriter) {
+	private void insertOrReplace(int code, int space, TupleWriter tupleWriter) {
 		try {
 			writeCode(code);
 			packer.packMapHeader(2);
@@ -195,14 +230,14 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packInt(space);
 			packer.packInt(Util.KEY_TUPLE);
 			tupleWriter.writeTuple(tuple);
-			return finishQueryAndRead();
+			finishQuery();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
 	@Override
-	public Result delete(int space, TupleWriter keyWriter, int index) {
+	public void delete(int space, TupleWriter keyWriter, int index) {
 		try {
 			writeCode(Util.CODE_DELETE);
 			packer.packMapHeader(3);
@@ -212,7 +247,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			keyWriter.writeTuple(tuple);
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
-			return finishQueryAndRead();
+			finishQuery();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -222,7 +257,9 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	public void ping() {
 		try {
 			writeCode(Util.CODE_PING);
-			int bodySize = finishQuery();
+			finishQuery();
+
+			int bodySize = flushAndGetResultSize(false);
 			if (bodySize != 0) {
 				throw new TarantoolException(bodySize + " body size came from ping");
 			}
