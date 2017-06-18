@@ -33,7 +33,7 @@ public interface TarantoolClient {
 				throw new TarantoolException("Unexpected result length " + result.getSize());
 			}
 			result.next();
-			return result.getInt();
+			return result.getInt(0);
 		}
 	}
 

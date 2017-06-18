@@ -5,14 +5,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 
 import org.msgpack.core.MessageUnpacker;
-import org.msgpack.value.ImmutableValue;
+import org.msgpack.value.ImmutableArrayValue;
 
 public class Result implements Closeable {
 
 	private int counter;
 	private final int size;
 	private final MessageUnpacker unpacker;
-	private ImmutableValue current;
+	private ImmutableArrayValue current;
 
 	Result(MessageUnpacker unpacker) {
 		try {
@@ -31,14 +31,22 @@ public class Result implements Closeable {
 		return counter < size;
 	}
 
-	public int getInt() {
-		return current.asArrayValue().list().get(0).asIntegerValue().asInt();
+	public int getInt(int index) {
+		return current.get(index).asIntegerValue().asInt();
+	}
+
+	public String getString(int index) {
+		return current.get(index).asStringValue().asString();
+	}
+
+	public int currentSize() {
+		return current.size();
 	}
 
 	public void next() {
 		counter++;
 		try {
-			current = unpacker.unpackValue();
+			current = unpacker.unpackValue().asArrayValue();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
