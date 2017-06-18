@@ -7,7 +7,7 @@ public interface TarantoolClient {
 	}
 
 	default Result selectAll(String space, int limit, int offset) {
-		return select(space(space), limit, offset);
+		return selectAll(space(space), limit, offset);
 	}
 
 	default Result selectAll(int space) {
@@ -119,6 +119,6 @@ public interface TarantoolClient {
 	default Result delete(String space, TupleWriter keyWriter) {
 		return delete(space(space), keyWriter, 0);
 	}
-	
+
 	void ping();
 }
