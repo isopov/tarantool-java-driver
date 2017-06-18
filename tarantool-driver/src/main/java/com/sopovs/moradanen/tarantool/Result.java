@@ -1,13 +1,13 @@
 package com.sopovs.moradanen.tarantool;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ImmutableArrayValue;
 
-public class Result implements Closeable {
+//TODO Closeable?
+public class Result {
 
 	private int counter;
 	private final int size;
@@ -52,8 +52,7 @@ public class Result implements Closeable {
 		}
 	}
 
-	@Override
-	public void close() {
+	public void consume() {
 		while (counter < size) {
 			counter++;
 			try {

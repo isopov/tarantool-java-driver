@@ -20,6 +20,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	private final Tuple tuple;
 	private final DataOutputStream out;
 	private int counter;
+	private Result last;
 
 	public TarantoolClientImpl(String host) {
 		this(host, 3301);
@@ -126,7 +127,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 
 		byte bodyKey = unpacker.unpackByte();
 		if (bodyKey == Util.KEY_DATA) {
-			return new Result(unpacker);
+			return last = new Result(unpacker);
 		} else if (bodyKey == Util.KEY_ERROR) {
 			throw new TarantoolException(unpacker.unpackString());
 		} else {
@@ -149,6 +150,9 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	}
 
 	private void writeCode(int code) throws IOException {
+		if (last != null && last.hasNext()) {
+			throw new TarantoolException("Sending next without reading previous");
+		}
 		packer.packMapHeader(2);
 		packer.packInt(Util.KEY_CODE);
 		packer.packInt(code);
@@ -205,4 +209,28 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		}
 	}
 
+	@Override
+	public Result insert(int space, TupleWriter tupleWriter) {
+		return insertOrReplace(Util.CODE_INSERT, space, tupleWriter);
+	}
+
+	@Override
+	public Result replace(int space, TupleWriter tupleWriter) {
+		return insertOrReplace(Util.CODE_REPLACE, space, tupleWriter);
+	}
+
+	private Result insertOrReplace(int code, int space, TupleWriter tupleWriter) {
+		try {
+			writeCode(code);
+			packer.packMapHeader(2);
+			packer.packInt(Util.KEY_SPACE);
+			packer.packInt(space);
+			packer.packInt(Util.KEY_TUPLE);
+			tupleWriter.writeTuple(tuple);
+			writePacket();
+			return readResponce();
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
 }

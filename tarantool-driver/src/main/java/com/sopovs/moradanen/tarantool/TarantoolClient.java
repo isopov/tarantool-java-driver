@@ -25,16 +25,15 @@ public interface TarantoolClient {
 	}
 
 	default int space(String space) {
-		try (Result result = select(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME)) {
-			if (result.getSize() == 0) {
-				throw new TarantoolException("No such space " + space);
-			}
-			if (result.getSize() != 1) {
-				throw new TarantoolException("Unexpected result length " + result.getSize());
-			}
-			result.next();
-			return result.getInt(0);
+		Result result = select(Util.SPACE_VSPACE, space, Util.INDEX_SPACE_NAME);
+		if (result.getSize() == 0) {
+			throw new TarantoolException("No such space " + space);
 		}
+		if (result.getSize() != 1) {
+			throw new TarantoolException("Unexpected result length " + result.getSize());
+		}
+		result.next();
+		return result.getInt(0);
 	}
 
 	Result select(int space, String key, int index, int limit, int offset);
@@ -81,6 +80,18 @@ public interface TarantoolClient {
 
 	default Result eval(String expression) {
 		return eval(expression, TupleWriter.EMPTY);
+	}
+
+	Result insert(int space, TupleWriter tupleWriter);
+
+	default Result insert(String space, TupleWriter tupleWriter) {
+		return insert(space(space), tupleWriter);
+	}
+
+	Result replace(int space, TupleWriter tupleWriter);
+
+	default Result replace(String space, TupleWriter tupleWriter) {
+		return replace(space(space), tupleWriter);
 	}
 
 }
