@@ -96,18 +96,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	}
 
 	private Result finishQueryAndRead() throws IOException {
-		List<MessageBuffer> bufferList = packer.toBufferList();
-		writeSize(bufferList);
-		for (int i = 0; i < bufferList.size(); i++) {
-			MessageBuffer messageBuffer = bufferList.get(i);
-			out.write(messageBuffer.toByteArray());
-		}
-		packer.clear();
-		out.flush();
-
-		unpacker.unpackInt();
-		unpackHeader();
-		int bodySize = unpacker.unpackMapHeader();
+		int bodySize = finishQuery();
 		if (1 != bodySize) {
 			throw new TarantoolException("Body size is " + bodySize);
 		}
@@ -120,6 +109,23 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		} else {
 			throw new TarantoolException("Unknown body Key " + bodyKey);
 		}
+	}
+
+	private int finishQuery() throws IOException {
+		List<MessageBuffer> bufferList = packer.toBufferList();
+		writeSize(bufferList);
+		for (int i = 0; i < bufferList.size(); i++) {
+			MessageBuffer messageBuffer = bufferList.get(i);
+			out.write(messageBuffer.toByteArray());
+		}
+		packer.clear();
+		out.flush();
+
+		// TODO expose byte size to Result?
+		unpacker.unpackInt();
+		unpackHeader();
+		int bodySize = unpacker.unpackMapHeader();
+		return bodySize;
 	}
 
 	private void writeCode(int code) throws IOException {
@@ -150,7 +156,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			if (key == Util.KEY_SYNC) {
 				int sync = unpacker.unpackInt();
 				if (sync != counter) {
-					throw new IOException("Expected responce to " + counter + " and came to " + sync);
+					throw new TarantoolException("Expected responce to " + counter + " and came to " + sync);
 				}
 			} else {
 				unpacker.unpackInt();
@@ -207,6 +213,19 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
 			return finishQueryAndRead();
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void ping() {
+		try {
+			writeCode(Util.CODE_PING);
+			int bodySize = finishQuery();
+			if (bodySize != 0) {
+				throw new TarantoolException(bodySize + " body size came from ping");
+			}
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}

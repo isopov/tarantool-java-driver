@@ -18,6 +18,13 @@ public class TarantoolClientImplTest {
 	}
 
 	@Test
+	public void testPing() {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+			client.ping();
+		}
+	}
+
+	@Test
 	public void testSelect() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			Result result = client.selectAll(Util.SPACE_VSPACE, 10);
@@ -100,7 +107,7 @@ public class TarantoolClientImplTest {
 			Result update = client.delete("javatest", TupleWriter.integer(1));
 			assertEquals(1, update.getSize());
 			update.consume();
-			
+
 			Result select = client.select("javatest", 1, 0);
 			assertEquals(0, select.getSize());
 		}

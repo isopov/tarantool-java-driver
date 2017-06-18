@@ -119,4 +119,6 @@ public interface TarantoolClient {
 	default Result delete(String space, TupleWriter keyWriter) {
 		return delete(space(space), keyWriter, 0);
 	}
+	
+	void ping();
 }
