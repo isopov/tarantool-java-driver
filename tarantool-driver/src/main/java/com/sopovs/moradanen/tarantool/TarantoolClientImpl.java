@@ -61,63 +61,50 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packString(expression);
 			packer.packInt(Util.KEY_TUPLE);
 			tupleWriter.writeTuple(tuple);
-			writePacket();
-			return readResponce();
+			return finishQueryAndRead();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
 	@Override
-	public Result select(int space, String key, int index, int limit, int offset) {
+	public Result select(int space, TupleWriter keyWriter, int index, int limit, int offset) {
 		try {
-			selectStart(space, index);
+			writeCode(Util.CODE_SELECT);
+
+			packer.packMapHeader(6);
+			packer.packInt(Util.KEY_SPACE);
+			packer.packInt(space);
+			packer.packInt(Util.KEY_INDEX);
+			packer.packInt(index);
+
+			// TODO
+			packer.packInt(Util.KEY_ITERATOR);
+			packer.packInt(0);
 			packer.packInt(Util.KEY_KEY);
-			packer.packArrayHeader(1);
-			packer.packString(key);
-			return selectEnd(limit, offset);
+			keyWriter.writeTuple(tuple);
+			packer.packInt(Util.KEY_LIMIT);
+			packer.packInt(limit);
+
+			packer.packInt(Util.KEY_OFFSET);
+			packer.packInt(offset);
+
+			return finishQueryAndRead();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
-	@Override
-	public Result select(int space, int key, int index, int limit, int offset) {
-		try {
-			selectStart(space, index);
-			packer.packInt(Util.KEY_KEY);
-			packer.packArrayHeader(1);
-			packer.packInt(key);
-			return selectEnd(limit, offset);
-		} catch (IOException e) {
-			throw new TarantoolException(e);
+	private Result finishQueryAndRead() throws IOException {
+		List<MessageBuffer> bufferList = packer.toBufferList();
+		writeSize(bufferList);
+		for (int i = 0; i < bufferList.size(); i++) {
+			MessageBuffer messageBuffer = bufferList.get(i);
+			out.write(messageBuffer.toByteArray());
 		}
-	}
+		packer.clear();
+		out.flush();
 
-	@Override
-	public Result selectAll(int space, int limit, int offset) {
-		try {
-			selectStart(space, 0);
-			packer.packInt(Util.KEY_KEY);
-			packer.packArrayHeader(0);
-			return selectEnd(limit, offset);
-		} catch (IOException e) {
-			throw new TarantoolException(e);
-		}
-	}
-
-	private Result selectEnd(int limit, int offset) throws IOException {
-		packer.packInt(Util.KEY_LIMIT);
-		packer.packInt(limit);
-
-		packer.packInt(Util.KEY_OFFSET);
-		packer.packInt(offset);
-
-		writePacket();
-		return readResponce();
-	}
-
-	private Result readResponce() throws IOException {
 		unpacker.unpackInt();
 		unpackHeader();
 		int bodySize = unpacker.unpackMapHeader();
@@ -135,20 +122,6 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		}
 	}
 
-	private void selectStart(int space, int index) throws IOException {
-		writeCode(Util.CODE_SELECT);
-
-		packer.packMapHeader(6);
-		packer.packInt(Util.KEY_SPACE);
-		packer.packInt(space);
-		packer.packInt(Util.KEY_INDEX);
-		packer.packInt(index);
-
-		// TODO
-		packer.packInt(Util.KEY_ITERATOR);
-		packer.packInt(0);
-	}
-
 	private void writeCode(int code) throws IOException {
 		if (last != null && last.hasNext()) {
 			throw new TarantoolException("Sending next without reading previous");
@@ -158,17 +131,6 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		packer.packInt(code);
 		packer.packInt(Util.KEY_SYNC);
 		packer.packInt(++counter);
-	}
-
-	private void writePacket() throws IOException {
-		List<MessageBuffer> bufferList = packer.toBufferList();
-		writeSize(bufferList);
-		for (int i = 0; i < bufferList.size(); i++) {
-			MessageBuffer messageBuffer = bufferList.get(i);
-			out.write(messageBuffer.toByteArray());
-		}
-		packer.clear();
-		out.flush();
 	}
 
 	private void writeSize(List<MessageBuffer> bufferList) throws IOException {
@@ -227,10 +189,27 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			packer.packInt(space);
 			packer.packInt(Util.KEY_TUPLE);
 			tupleWriter.writeTuple(tuple);
-			writePacket();
-			return readResponce();
+			return finishQueryAndRead();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
+
+	@Override
+	public Result delete(int space, TupleWriter keyWriter, int index) {
+		try {
+			writeCode(Util.CODE_DELETE);
+			packer.packMapHeader(3);
+			packer.packInt(Util.KEY_SPACE);
+			packer.packInt(space);
+			packer.packInt(Util.KEY_KEY);
+			keyWriter.writeTuple(tuple);
+			packer.packInt(Util.KEY_INDEX);
+			packer.packInt(index);
+			return finishQueryAndRead();
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
 }

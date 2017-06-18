@@ -2,7 +2,9 @@ package com.sopovs.moradanen.tarantool;
 
 public interface TarantoolClient {
 
-	Result selectAll(int space, int limit, int offset);
+	default Result selectAll(int space, int limit, int offset) {
+		return select(space, TupleWriter.EMPTY, 0, limit, offset);
+	}
 
 	default Result selectAll(String space, int limit, int offset) {
 		return select(space(space), limit, offset);
@@ -36,7 +38,11 @@ public interface TarantoolClient {
 		return result.getInt(0);
 	}
 
-	Result select(int space, String key, int index, int limit, int offset);
+	Result select(int space, TupleWriter keyWriter, int index, int limit, int offset);
+
+	default Result select(int space, String key, int index, int limit, int offset) {
+		return select(space, TupleWriter.string(key), index, limit, offset);
+	}
 
 	default Result select(String space, String key, int index, int limit, int offset) {
 		return select(space(space), key, index, limit, offset);
@@ -58,7 +64,9 @@ public interface TarantoolClient {
 		return select(space(space), key, index, limit, 0);
 	}
 
-	Result select(int space, int key, int index, int limit, int offset);
+	default Result select(int space, int key, int index, int limit, int offset) {
+		return select(space, TupleWriter.integer(key), index, limit, offset);
+	}
 
 	default Result select(int space, int key, int index) {
 		return select(space, key, index, Integer.MAX_VALUE, 0);
@@ -94,4 +102,21 @@ public interface TarantoolClient {
 		return replace(space(space), tupleWriter);
 	}
 
+	Result delete(int space, TupleWriter keyWriter, int index);
+
+	default Result delete(String space, TupleWriter keyWriter, int index) {
+		return delete(space(space), keyWriter, index);
+	}
+
+	default Result delete(String space, int key, int index) {
+		return delete(space(space), TupleWriter.integer(key), index);
+	}
+
+	default Result delete(String space, int key) {
+		return delete(space(space), TupleWriter.integer(key), 0);
+	}
+
+	default Result delete(String space, TupleWriter keyWriter) {
+		return delete(space(space), keyWriter, 0);
+	}
 }

@@ -88,23 +88,41 @@ public class TarantoolClientImplTest {
 	public void testInsert() throws Exception {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.eval("box.space.javatest:drop()")) {
-			client.eval("box.schema.space.create('javatest')");
-			client.eval("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
-
-			Result insert = client.insert("javatest", tuple -> {
-				tuple.writeSize(2);
-				tuple.writeInt(1);
-				tuple.writeString("Foobar");
-			});
-			assertEquals(1, insert.getSize());
-			insert.consume();
-
-			Result select = client.select("javatest", 1, 0);
-			assertEquals(1, select.getSize());
-			select.next();
-			assertEquals(1, select.getInt(0));
-			assertEquals("Foobar", select.getString(1));
+			insertInternal(client);
 		}
+	}
+
+	@Test
+	public void testDelete() throws Exception {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.eval("box.space.javatest:drop()")) {
+			insertInternal(client);
+			Result update = client.delete("javatest", TupleWriter.integer(1));
+			assertEquals(1, update.getSize());
+			update.consume();
+			
+			Result select = client.select("javatest", 1, 0);
+			assertEquals(0, select.getSize());
+		}
+	}
+
+	private static void insertInternal(TarantoolClientImpl client) {
+		client.eval("box.schema.space.create('javatest')");
+		client.eval("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
+
+		Result insert = client.insert("javatest", tuple -> {
+			tuple.writeSize(2);
+			tuple.writeInt(1);
+			tuple.writeString("Foobar");
+		});
+		assertEquals(1, insert.getSize());
+		insert.consume();
+
+		Result select = client.select("javatest", 1, 0);
+		assertEquals(1, select.getSize());
+		select.next();
+		assertEquals(1, select.getInt(0));
+		assertEquals("Foobar", select.getString(1));
 	}
 
 }
