@@ -121,18 +121,16 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		unpackHeader();
 		int bodySize = unpacker.unpackMapHeader();
 		if (1 != bodySize) {
-			// TODO Other exception?
-			throw new IOException("Body size is " + bodySize);
+			throw new TarantoolException("Body size is " + bodySize);
 		}
 
 		byte bodyKey = unpacker.unpackByte();
 		if (bodyKey == Util.KEY_DATA) {
 			return new Result(unpacker);
 		} else if (bodyKey == Util.KEY_ERROR) {
-			// TODO Other exception?
-			throw new IOException(unpacker.unpackString());
+			throw new TarantoolException(unpacker.unpackString());
 		} else {
-			throw new IOException("Unknown body Key " + bodyKey);
+			throw new TarantoolException("Unknown body Key " + bodyKey);
 		}
 	}
 
