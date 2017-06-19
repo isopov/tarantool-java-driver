@@ -108,12 +108,14 @@ public class TarantoolClientImplTest {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
-			client.delete("javatest", TupleWriter.integer(1));
+			client.delete("javatest");
+			client.setInt(1);
 			Result delete = client.execute();
 			assertEquals(1, delete.getSize());
 			delete.consume();
 
-			client.select("javatest", 1, 0);
+			client.select("javatest", 0);
+			client.setInt(1);
 			Result select = client.execute();
 			assertEquals(0, select.getSize());
 		}
@@ -122,16 +124,16 @@ public class TarantoolClientImplTest {
 	private static void insertInternal(TarantoolClientImpl client) {
 		createTestSpace(client);
 
-		client.insert("javatest", tuple -> {
-			tuple.writeSize(2);
-			tuple.writeInt(1);
-			tuple.writeString("Foobar");
-		});
+		client.insert("javatest");
+		client.setInt(1);
+		client.setString("Foobar");
+
 		Result insert = client.execute();
 		assertEquals(1, insert.getSize());
 		insert.consume();
 
-		client.select("javatest", 1, 0);
+		client.select("javatest", 0);
+		client.setInt(1);
 		Result select = client.execute();
 		assertEquals(1, select.getSize());
 		select.next();
@@ -150,13 +152,12 @@ public class TarantoolClientImplTest {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
+			int space = client.space("javatest");
 			for (int i = 0; i < 10; i++) {
-				int id = i;
-				client.insert("javatest", tuple -> {
-					tuple.writeSize(2);
-					tuple.writeInt(id);
-					tuple.writeString("Foo" + id);
-				});
+
+				client.insert(space);
+				client.setInt(i);
+				client.setString("Foo" + i);
 
 				client.addBatch();
 			}
@@ -164,7 +165,8 @@ public class TarantoolClientImplTest {
 			client.executeBatch();
 
 			for (int i = 0; i < 10; i++) {
-				client.select("javatest", i, 0);
+				client.select(space, 0);
+				client.setInt(i);
 				Result first = client.execute();
 				assertEquals(1, first.getSize());
 				first.consume();
