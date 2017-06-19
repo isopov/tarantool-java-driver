@@ -55,32 +55,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 		}
 	}
 
-	private Result execute(boolean batch) {
-		try {
-			packer.packInt(queryCode);
-			packer.packArrayHeader(querySize);
-			packer.addPayload(queryPacker.toByteArray());
-			finishQuery();
-
-			int bodySize = flushAndGetResultSize(batch);
-			if (1 != bodySize) {
-				throw new TarantoolException("Body size is " + bodySize);
-			}
-
-			byte bodyKey = unpacker.unpackByte();
-			if (bodyKey == Util.KEY_DATA) {
-				return last = new Result(unpacker);
-			} else if (bodyKey == Util.KEY_ERROR) {
-				throw new TarantoolException(unpacker.unpackString());
-			} else {
-				throw new TarantoolException("Unknown body Key " + bodyKey);
-			}
-		} catch (IOException e) {
-			throw new TarantoolException(e);
-		}
-	}
-	
-	private Result getSingleBatchResult(){
+	private Result getSingleResult() {
 		try {
 			int bodySize = flushAndGetResultSize(true);
 			if (1 != bodySize) {
@@ -99,14 +74,14 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 			throw new TarantoolException(e);
 		}
 	}
-	
 
 	@Override
 	public Result execute() {
 		if (batchSize > 0) {
 			executeBatch();
 		}
-		return execute(false);
+		finishQueryWithArguments();
+		return getSingleResult();
 	}
 
 	private int flushAndGetResultSize(boolean batch) throws IOException {
@@ -121,12 +96,16 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 
 	@Override
 	public void addBatch() {
+		finishQueryWithArguments();
+		batchSize++;
+	}
+
+	private void finishQueryWithArguments() {
 		try {
 			packer.packInt(queryCode);
 			packer.packArrayHeader(querySize);
 			packer.addPayload(queryPacker.toByteArray());
 			finishQuery();
-			batchSize++;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -135,7 +114,7 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 	@Override
 	public void executeBatch() {
 		for (int i = 0; i < batchSize; i++) {
-			Result result = getSingleBatchResult();
+			Result result = getSingleResult();
 			result.consume();
 		}
 		batchSize = 0;
