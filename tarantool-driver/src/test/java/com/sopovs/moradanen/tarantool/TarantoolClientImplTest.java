@@ -2,6 +2,7 @@ package com.sopovs.moradanen.tarantool;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,9 +31,9 @@ public class TarantoolClientImplTest {
 	public void testSelect() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 
-			client.selectAll(Util.SPACE_VSPACE, 10);
+			client.selectAll(Util.SPACE_VSPACE);
 			Result result = client.execute();
-			assertEquals(10, result.getSize());
+			assertTrue(result.getSize() > 0);
 			result.consume();
 			assertFalse(result.hasNext());
 		}
@@ -134,6 +135,12 @@ public class TarantoolClientImplTest {
 		Result insert = client.execute();
 		assertEquals(1, insert.getSize());
 		insert.consume();
+
+		// TODO
+		// client.selectAll("javatest");
+		// Result selectAll = client.execute();
+		// assertEquals(1, selectAll.getSize());
+		// selectAll.consume();
 
 		client.select("javatest", 0);
 		client.setInt(1);

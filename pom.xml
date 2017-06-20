@@ -24,8 +24,9 @@
 	<modules>
 		<module>tarantool-driver-core</module>
 		<module>tarantool-driver</module>
-		<module>tarantool-driver-jdbc</module>
+		<module>tarantool-jdbc</module>
 		<module>tarantool-driver-async</module>
+		<module>tarantool-benchmarks</module>
 	</modules>
 
 	<dependencies>
@@ -47,6 +48,31 @@
 					<source>1.8</source>
 					<target>1.8</target>
 				</configuration>
+			</plugin>
+						<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>1.0.1</version>
+				<executions>
+					<execution>
+						<id>enforce-dependencies</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<DependencyConvergence />
+								<requireJavaVersion>
+									<version>1.8.0</version>
+								</requireJavaVersion>
+								<requireMavenVersion>
+									<version>3.5.0</version>
+								</requireMavenVersion>
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

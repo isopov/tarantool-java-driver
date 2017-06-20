@@ -18,11 +18,5 @@
 			<artifactId>msgpack-core</artifactId>
 			<version>0.8.13</version>
 		</dependency>
-		<dependency>
-			<groupId>org.tarantool</groupId>
-			<artifactId>connector</artifactId>
-			<version>1.7.4</version>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
 </project>

@@ -1,24 +1,14 @@
 package com.sopovs.moradanen.tarantool;
 
-public interface TarantoolClient {
+import java.io.Closeable;
+
+public interface TarantoolClient extends Closeable {
 
 	Result execute();
 
 	void addBatch();
 
 	void executeBatch();
-
-	default void selectAll(int space, int limit, int offset) {
-		select(space, 0, limit, offset);
-	}
-
-	default void selectAll(int space, int limit) {
-		selectAll(space, limit, 0);
-	}
-
-	default void selectAll(String space, int limit) {
-		selectAll(space(space), limit, 0);
-	}
 
 	default int space(String space) {
 		select(Util.SPACE_VSPACE, Util.INDEX_SPACE_NAME);
@@ -54,6 +44,24 @@ public interface TarantoolClient {
 
 	default void select(String space, int index, int limit) {
 		select(space(space), index, limit, 0);
+	}
+
+	void selectAll(int space, int limit, int offset);
+
+	default void selectAll(int space) {
+		selectAll(space, Integer.MAX_VALUE, 0);
+	}
+
+	default void selectAll(String space) {
+		selectAll(space(space), Integer.MAX_VALUE, 0);
+	}
+
+	default void selectAll(int space, int limit) {
+		selectAll(space, limit, 0);
+	}
+
+	default void selectAll(String space, int limit) {
+		selectAll(space(space), limit, 0);
 	}
 
 	void eval(String expression);
@@ -110,4 +118,6 @@ public interface TarantoolClient {
 		}
 	}
 
+	@Override
+	void close();
 }

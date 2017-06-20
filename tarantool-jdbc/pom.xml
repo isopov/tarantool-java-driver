@@ -9,7 +9,7 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>tarantool-driver-jdbc</artifactId>
+	<artifactId>tarantool-jdbc</artifactId>
 	<packaging>jar</packaging>
 
 	<dependencies>

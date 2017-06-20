@@ -1,7 +1,6 @@
 package com.sopovs.moradanen.tarantool;
 
 import java.io.BufferedOutputStream;
-import java.io.Closeable;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -13,7 +12,7 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.core.buffer.MessageBuffer;
 
-public class TarantoolClientImpl implements TarantoolClient, Closeable {
+public class TarantoolClientImpl implements TarantoolClient {
 	private final Socket socket;
 	private final MessageUnpacker unpacker;
 	private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
@@ -147,25 +146,43 @@ public class TarantoolClientImpl implements TarantoolClient, Closeable {
 
 	@Override
 	public void select(int space, int index, int limit, int offset) {
-		try {
-			writeCode(Util.CODE_SELECT);
+		selectInternal(5, space, limit, offset);
 
-			packer.packMapHeader(6);
-			packer.packInt(Util.KEY_SPACE);
-			packer.packInt(space);
+		try {
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void selectAll(int space, int limit, int offset) {
+		selectInternal(4, space, limit, offset);
+	}
+
+	private void selectInternal(int headSize, int space, int limit, int offset) {
+		try {
+			writeCode(Util.CODE_SELECT);
+			if (offset == 0) {
+				headSize--;
+			}
+
+			packer.packMapHeader(headSize);
+			packer.packInt(Util.KEY_SPACE);
+			packer.packInt(space);
 
 			// TODO
-			packer.packInt(Util.KEY_ITERATOR);
-			packer.packInt(0);
+			// packer.packInt(Util.KEY_ITERATOR);
+			// packer.packInt(0);
 			assert queryCode == 0;
 			queryCode = Util.KEY_KEY;
 			packer.packInt(Util.KEY_LIMIT);
 			packer.packInt(limit);
-
-			packer.packInt(Util.KEY_OFFSET);
-			packer.packInt(offset);
+			if (offset != 0) {
+				packer.packInt(Util.KEY_OFFSET);
+				packer.packInt(offset);
+			}
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
