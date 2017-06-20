@@ -7,6 +7,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.sopovs.moradanen.tarantool.TarantoolClient.Op;
+
 public class TarantoolClientImplTest {
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
@@ -89,9 +91,9 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testEval() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			client.eval("box.schema.space.create('javatest')");
-			client.eval("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
-			client.eval("box.space.javatest:drop()");
+			client.evalFully("box.schema.space.create('javatest')");
+			client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
+			client.evalFully("box.space.javatest:drop()");
 		}
 	}
 
@@ -126,6 +128,7 @@ public class TarantoolClientImplTest {
 
 		client.insert("javatest");
 		client.setInt(1);
+		client.setInt(0);
 		client.setString("Foobar");
 
 		Result insert = client.execute();
@@ -138,7 +141,8 @@ public class TarantoolClientImplTest {
 		assertEquals(1, select.getSize());
 		select.next();
 		assertEquals(1, select.getInt(0));
-		assertEquals("Foobar", select.getString(1));
+		assertEquals(0, select.getInt(1));
+		assertEquals("Foobar", select.getString(2));
 	}
 
 	private static void createTestSpace(TarantoolClientImpl client) {
@@ -172,6 +176,29 @@ public class TarantoolClientImplTest {
 				first.consume();
 			}
 
+		}
+	}
+
+	@Test
+	public void testUpdate() throws Exception {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			insertInternal(client);
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			client.change(Op.PLUS, 1, 1);
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+			update.consume();
+
+			client.select("javatest", 0);
+			client.setInt(1);
+			Result select = client.execute();
+			assertEquals(1, select.getSize());
+			select.next();
+			assertEquals(1, select.getInt(0));
+			assertEquals(1, select.getInt(1));
+			assertEquals("Foobar", select.getString(2));
 		}
 	}
 

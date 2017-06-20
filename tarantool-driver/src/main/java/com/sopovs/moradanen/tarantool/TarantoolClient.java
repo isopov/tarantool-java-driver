@@ -36,29 +36,27 @@ public interface TarantoolClient {
 
 	void select(int space, int index, int limit, int offset);
 
-
-	default void select(String space,  int index, int limit, int offset) {
-		select(space(space),  index, limit, offset);
+	default void select(String space, int index, int limit, int offset) {
+		select(space(space), index, limit, offset);
 	}
 
-	default void select(int space,  int index) {
-		select(space,  index, Integer.MAX_VALUE, 0);
+	default void select(int space, int index) {
+		select(space, index, Integer.MAX_VALUE, 0);
 	}
 
-	default void select(String space,  int index) {
-		select(space(space),  index, Integer.MAX_VALUE, 0);
+	default void select(String space, int index) {
+		select(space(space), index, Integer.MAX_VALUE, 0);
 	}
 
 	default void select(int space, int index, int limit) {
 		select(space, index, limit, 0);
 	}
 
-	default void select(String space,  int index, int limit) {
-		select(space(space),  index, limit, 0);
+	default void select(String space, int index, int limit) {
+		select(space(space), index, limit, 0);
 	}
 
 	void eval(String expression);
-
 
 	default Result evalFully(String expression) {
 		eval(expression);
@@ -87,9 +85,29 @@ public interface TarantoolClient {
 		delete(space(space), 0);
 	}
 
+	void update(int space, int index);
+
+	void change(Op op, int field, int arg);
+
 	void ping();
 
 	void setInt(int val);
 
 	void setString(String val);
+
+	enum Op {
+		// TODO Delete
+		PLUS("+"), MINUS("-"), AND("&"), OR("|"), XOR("^");
+
+		private final String val;
+
+		private Op(String val) {
+			this.val = val;
+		}
+
+		public String getVal() {
+			return val;
+		}
+	}
+
 }
