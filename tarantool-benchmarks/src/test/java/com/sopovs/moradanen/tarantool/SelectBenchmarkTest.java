@@ -12,17 +12,18 @@ public class SelectBenchmarkTest {
 
 	@Before
 	public void setup() throws Exception {
+		benchmark.size=33;
 		benchmark.setup();
 	}
 
 	@Test
 	public void testClient() throws Exception {
-		assertEquals(1, benchmark.client());
+		assertEquals(33, benchmark.client());
 	}
 
 	@Test
 	public void testConnection() {
-		assertEquals(1, benchmark.connection().size());
+		assertEquals(33, benchmark.connection().size());
 	}
 
 	@After

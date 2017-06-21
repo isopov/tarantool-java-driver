@@ -136,11 +136,10 @@ public class TarantoolClientImplTest {
 		assertEquals(1, insert.getSize());
 		insert.consume();
 
-		// TODO
-		// client.selectAll("javatest");
-		// Result selectAll = client.execute();
-		// assertEquals(1, selectAll.getSize());
-		// selectAll.consume();
+		client.selectAll("javatest");
+		Result selectAll = client.execute();
+		assertEquals(1, selectAll.getSize());
+		selectAll.consume();
 
 		client.select("javatest", 0);
 		client.setInt(1);

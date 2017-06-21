@@ -11,6 +11,7 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -26,7 +27,7 @@ import org.tarantool.TarantoolConnection;
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
 @State(Scope.Benchmark)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class SelectBenchmark {
@@ -35,8 +36,9 @@ public class SelectBenchmark {
 	private TarantoolClient client;
 	private int space;
 
-	//TODO size
-	
+	@Param({ "1", "10", "100", "1000", "10000" })
+	public int size;
+
 	@Setup
 	public void setup() throws Exception {
 		connection = new TarantoolConnection(null, null, new Socket("localhost", 3301));
@@ -46,24 +48,26 @@ public class SelectBenchmark {
 		client.evalFully("box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
 				.consume();
 		space = client.space("javabenchmark");
+		for (int i = 0; i < size; i++) {
+			client.insert(space);
+			client.setInt(i);
+			client.addBatch();
+		}
+		client.executeBatch();
 
-		client.insert(space);
-		client.setInt(1);
-		client.execute().consume();
 	}
 
 	@Benchmark
 	public int client() {
-		client.select(space, 0);
-		client.setInt(1);
+		client.selectAll(space);
 		Result select = client.execute();
 		select.consume();
 		return select.getSize();
 	}
-	
+
 	@Benchmark
-	public List<?> connection(){
-		return connection.select(space, 0, Collections.singletonList(1), 0, Integer.MAX_VALUE, 0);
+	public List<?> connection() {
+		return connection.select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE, Iter.ALL.getValue());
 	}
 
 	@TearDown

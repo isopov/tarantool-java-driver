@@ -24,7 +24,11 @@ public interface TarantoolClient extends Closeable {
 		return result.getInt(0);
 	}
 
-	void select(int space, int index, int limit, int offset);
+	void select(int space, int index, int limit, int offset, Iter iterator);
+
+	default void select(int space, int index, int limit, int offset) {
+		select(space, index, limit, offset, Iter.EQ);
+	}
 
 	default void select(String space, int index, int limit, int offset) {
 		select(space(space), index, limit, offset);

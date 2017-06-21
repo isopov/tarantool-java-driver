@@ -145,8 +145,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	@Override
-	public void select(int space, int index, int limit, int offset) {
-		selectInternal(5, space, limit, offset);
+	public void select(int space, int index, int limit, int offset, Iter iterator) {
+		selectInternal(6, space, limit, offset, iterator);
 
 		try {
 			packer.packInt(Util.KEY_INDEX);
@@ -158,13 +158,16 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void selectAll(int space, int limit, int offset) {
-		selectInternal(4, space, limit, offset);
+		selectInternal(5, space, limit, offset, Iter.ALL);
 	}
 
-	private void selectInternal(int headSize, int space, int limit, int offset) {
+	private void selectInternal(int headSize, int space, int limit, int offset, Iter iterator) {
 		try {
 			writeCode(Util.CODE_SELECT);
 			if (offset == 0) {
+				headSize--;
+			}
+			if (iterator == Iter.EQ) {
 				headSize--;
 			}
 
@@ -172,9 +175,10 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
 
-			// TODO
-			// packer.packInt(Util.KEY_ITERATOR);
-			// packer.packInt(0);
+			if (iterator != Iter.EQ) {
+				packer.packInt(Util.KEY_ITERATOR);
+				packer.packInt(iterator.getValue());
+			}
 			assert queryCode == 0;
 			queryCode = Util.KEY_KEY;
 			packer.packInt(Util.KEY_LIMIT);
