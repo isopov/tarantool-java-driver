@@ -108,8 +108,7 @@ public interface TarantoolClient extends Closeable {
 	void setString(String val);
 
 	enum Op {
-		// TODO Delete
-		PLUS("+"), MINUS("-"), AND("&"), OR("|"), XOR("^");
+		PLUS("+"), MINUS("-"), AND("&"), OR("|"), XOR("^"), DELETE("#");
 
 		private final String val;
 
