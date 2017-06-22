@@ -19,12 +19,41 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	private final MessageBufferPacker queryPacker = MessagePack.newDefaultBufferPacker();
 	private int querySize = 0;
-	private int queryCode = 0;
 
 	private final DataOutputStream out;
 	private int counter;
 	private Result last;
 	private int batchSize = 0;
+
+	private byte currentQuery = 0;
+
+	private static final byte INSERT = 1;
+	private static final byte UPSERT_TUPLE = 2;
+	private static final byte UPSERT_OPS = 3;
+	private static final byte EVAL = 4;
+	private static final byte SELECT = 5;
+	private static final byte DELETE = 6;
+	private static final byte UPDATE_KEY = 7;
+	private static final byte UPDATE_TUPLE = 8;
+
+	private static int currentQueryToQueryCode(byte currentQuery) {
+		switch (currentQuery) {
+		case EVAL:
+		case INSERT:
+		case UPDATE_TUPLE:
+		case UPSERT_TUPLE:
+			return Util.KEY_TUPLE;
+		case SELECT:
+		case DELETE:
+		case UPDATE_KEY:
+			return Util.KEY_KEY;
+		case UPSERT_OPS:
+			return Util.KEY_UPSERT_OPS;
+		case 0:
+		default:
+			throw new IllegalArgumentException();
+		}
+	}
 
 	public TarantoolClientImpl(String host) {
 		this(host, 3301);
@@ -109,14 +138,13 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	private void writeQuery() throws IOException {
-		assert queryCode != 0;
-		packer.packInt(queryCode);
+		packer.packInt(currentQueryToQueryCode(currentQuery));
 		packer.packArrayHeader(querySize);
 		if (querySize > 0) {
 			byte[] query = queryPacker.toByteArray();
 			packer.addPayload(query);
 		}
-		queryCode = 0;
+		currentQuery = 0;
 		querySize = 0;
 		queryPacker.clear();
 	}
@@ -137,8 +165,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packMapHeader(2);
 			packer.packInt(Util.KEY_EXPRESSION);
 			packer.packString(expression);
-			assert queryCode == 0;
-			queryCode = Util.KEY_TUPLE;
+			currentQuery = EVAL;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -179,8 +206,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 				packer.packInt(Util.KEY_ITERATOR);
 				packer.packInt(iterator.getValue());
 			}
-			assert queryCode == 0;
-			queryCode = Util.KEY_KEY;
+			assert currentQuery == 0;
+			currentQuery = SELECT;
 			packer.packInt(Util.KEY_LIMIT);
 			packer.packInt(limit);
 			if (offset != 0) {
@@ -271,7 +298,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packMapHeader(2);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			queryCode = Util.KEY_TUPLE;
+			assert currentQuery == 0;
+			currentQuery = INSERT;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -284,7 +312,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packMapHeader(3);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			queryCode = Util.KEY_KEY;
+			assert currentQuery == 0;
+			currentQuery = DELETE;
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
 		} catch (IOException e) {
@@ -335,23 +364,39 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packMapHeader(4);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			queryCode = Util.KEY_KEY;
+			assert currentQuery == 0;
+			currentQuery = UPDATE_KEY;
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
+	}
 
+	@Override
+	public void upsert(int space) {
+		try {
+			writeCode(Util.CODE_UPSERT);
+			packer.packMapHeader(3);
+			packer.packInt(Util.KEY_SPACE);
+			packer.packInt(space);
+			assert currentQuery == 0;
+			currentQuery = UPSERT_TUPLE;
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
 	}
 
 	@Override
 	public void change(Op op, int field, int arg) {
 		try {
-			if (queryCode == Util.KEY_KEY) {
+			if (currentQuery == UPDATE_KEY) {
 				writeQuery();
-				queryCode = Util.KEY_TUPLE;
+				currentQuery = UPDATE_TUPLE;
+			} else if (currentQuery == UPSERT_TUPLE) {
+				writeQuery();
+				currentQuery = UPSERT_OPS;
 			}
-			assert queryCode == Util.KEY_TUPLE;
 			querySize++;
 			queryPacker.packArrayHeader(3);
 			queryPacker.packString(op.getVal());

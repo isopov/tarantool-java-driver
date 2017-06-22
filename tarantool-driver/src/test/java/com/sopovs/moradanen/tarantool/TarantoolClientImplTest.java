@@ -164,11 +164,9 @@ public class TarantoolClientImplTest {
 			createTestSpace(client);
 			int space = client.space("javatest");
 			for (int i = 0; i < 10; i++) {
-
 				client.insert(space);
 				client.setInt(i);
 				client.setString("Foo" + i);
-
 				client.addBatch();
 			}
 
@@ -195,17 +193,71 @@ public class TarantoolClientImplTest {
 			client.change(Op.PLUS, 1, 1);
 			Result update = client.execute();
 			assertEquals(1, update.getSize());
+
 			update.consume();
 
-			client.select("javatest", 0);
-			client.setInt(1);
-			Result select = client.execute();
-			assertEquals(1, select.getSize());
-			select.next();
-			assertEquals(1, select.getInt(0));
-			assertEquals(1, select.getInt(1));
-			assertEquals("Foobar", select.getString(2));
+			testValue(client, 1);
 		}
 	}
+	
+	
+	
+	@Test
+	public void testUpsert() throws Exception {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			createTestSpace(client);
+			
+			testUpsertStep(client, 1);
+			testUpsertStep(client, 2);
+			testUpsertStep(client, 3);
+		}
+	}
+	
+	
+	@Test
+	public void testUpsertBatch() throws Exception{
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			createTestSpace(client);
+			for (int i = 0; i < 10; i++) {
+				testUpsertBatchStep(client);
+				client.addBatch();
+			}
+			client.executeBatch();
+			testValue(client, 10);
+		}
+	}
+	
+	public void testUpsertStep(TarantoolClient client, int value){
+		testUpsertBatchStep(client);
+		Result upsert = client.execute();
+		assertEquals(0, upsert.getSize());
+		upsert.consume();
+		
+		testValue(client, value);
+	}
+
+	private void testUpsertBatchStep(TarantoolClient client) {
+		client.upsert(client.space("javatest"));
+		client.setInt(1);
+		client.setInt(1);
+		client.setString("Foobar");
+		client.change(Op.PLUS, 1, 1);
+	}
+	
+	
+	private void testValue(TarantoolClient client, int value){
+		client.select("javatest", 0);
+		client.setInt(1);
+		Result select = client.execute();
+		assertEquals(1, select.getSize());
+		select.next();
+		assertEquals(1, select.getInt(0));
+		assertEquals(value, select.getInt(1));
+		assertEquals("Foobar", select.getString(2));
+	}
+	
+	
 
 }
