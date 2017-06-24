@@ -1,6 +1,8 @@
 package com.sopovs.moradanen.tarantool;
 
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -22,70 +24,97 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.tarantool.TarantoolClientConfig;
 import org.tarantool.TarantoolConnection;
 
-//Benchmark                                                    (size)  Mode  Cnt        Score         Error   Units
-//SelectBenchmark.client                                            1  avgt   15       17.889 ±       2.666   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                        1  avgt   15      290.339 ±       8.934    B/op
-//SelectBenchmark.client                                           10  avgt   15       17.034 ±       0.090   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                       10  avgt   15      889.304 ±      16.064    B/op
-//SelectBenchmark.client                                          100  avgt   15       23.069 ±       0.394   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                      100  avgt   15     6663.479 ±      19.751    B/op
-//SelectBenchmark.client                                         1000  avgt   15       74.478 ±       2.829   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                     1000  avgt   15    53605.639 ±    8346.383    B/op
-//SelectBenchmark.client                                        10000  avgt   15      614.299 ±      16.483   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                    10000  avgt   15   480589.734 ±       2.191    B/op
+//Benchmark                                                         (size)  Mode  Cnt         Score          Error   Units
+//SelectBenchmark.client                                                 1  avgt    5        44.097 ±       13.222   us/op
+//SelectBenchmark.client:·gc.alloc.rate.norm                             1  avgt    5       696.045 ±        1.530    B/op
+//SelectBenchmark.client                                               100  avgt    5        89.070 ±       34.241   us/op
+//SelectBenchmark.client:·gc.alloc.rate                                100  avgt    5       298.388 ±      108.160  MB/sec
+//SelectBenchmark.client:·gc.alloc.rate.norm                           100  avgt    5     41526.581 ±        5.355    B/op
+//SelectBenchmark.client                                             10000  avgt    5      3520.862 ±      275.662   us/op
+//SelectBenchmark.client:·gc.alloc.rate.norm                         10000  avgt    5   4359367.929 ±        9.720    B/op
 //
-//SelectBenchmark.connection                                        1  avgt   15       28.267 ±       0.454   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                    1  avgt   15    11328.016 ±       0.008    B/op
-//SelectBenchmark.connection                                       10  avgt   15       34.625 ±       0.335   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                   10  avgt   15    18128.020 ±       0.010    B/op
-//SelectBenchmark.connection                                      100  avgt   15      101.093 ±       2.168   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                  100  avgt   15    86192.057 ±       0.029    B/op
-//SelectBenchmark.connection                                     1000  avgt   15     1273.523 ±     156.929   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                 1000  avgt   15   819332.096 ±       7.482    B/op
-//SelectBenchmark.connection                                    10000  avgt   15    14056.247 ±    2883.599   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                10000  avgt   15  8199336.207 ±       4.124    B/op
+//SelectBenchmark.referenceClient                                        1  avgt    5        80.325 ±       17.750   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                    1  avgt    5     10209.649 ±     8871.924    B/op
+//SelectBenchmark.referenceClient                                      100  avgt    5       138.650 ±       30.248   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                  100  avgt    5     98612.892 ±   199166.333    B/op
+//SelectBenchmark.referenceClient                                    10000  avgt    5      4769.988 ±      270.897   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                10000  avgt    5   9190430.678 ± 19769972.934    B/op
+//
+//SelectBenchmark.connection                                             1  avgt    5        65.622 ±        6.248   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm                         1  avgt    5     11760.048 ±        0.115    B/op
+//SelectBenchmark.connection                                           100  avgt    5       339.908 ±       10.309   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm                       100  avgt    5    129392.217 ±        0.552    B/op
+//SelectBenchmark.connection                                         10000  avgt    5     35564.391 ±     2027.553   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm                     10000  avgt    5  12677737.072 ±      134.566    B/op
 
 @BenchmarkMode(Mode.AverageTime)
-@Fork(3)
+@Fork(1)
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class SelectBenchmark {
 
 	private TarantoolConnection connection;
-	private TarantoolClient client;
+	private org.tarantool.TarantoolClient referenceClient;
+	private TarantoolClientSource clientSource;
+	private TarantoolTemplate template;
 	private int space;
 
-	@Param({ "1", "10", "100", "1000", "10000" })
+	@Param({ "1", "100", "10000" })
 	public int size;
 
 	@Setup
 	public void setup() throws Exception {
+		SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
+		referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
+				new TarantoolClientConfig());
 		connection = new TarantoolConnection(null, null, new Socket("localhost", 3301));
-		client = new TarantoolClientImpl("localhost");
 
-		client.evalFully("box.schema.space.create('javabenchmark')").consume();
-		client.evalFully("box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
-				.consume();
-		space = client.space("javabenchmark");
-		for (int i = 0; i < size; i++) {
-			client.insert(space);
-			client.setInt(i);
-			client.addBatch();
+		clientSource = new TarantoolSingleClientSource("localhost", 3301);
+		template = new TarantoolTemplate(clientSource);
+
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.evalFully("box.schema.space.create('javabenchmark')").consume();
+			client.evalFully(
+					"box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
+					.consume();
+			space = client.space("javabenchmark");
+			for (int i = 0; i < size; i++) {
+				client.insert(space);
+				client.setInt(i);
+				client.setString("FooBar" + i);
+				client.addBatch();
+			}
+			client.executeBatch();
 		}
-		client.executeBatch();
 
 	}
 
 	@Benchmark
-	public int client() {
-		client.selectAll(space);
-		Result select = client.execute();
-		select.consume();
-		return select.getSize();
+	public List<Foo> client() {
+		return template.selectAndMapAll(space, res -> new Foo(res.getInt(0), res.getString(1)));
+	}
+
+	public static final class Foo {
+		private final int id;
+		private final String val;
+
+		public Foo(int id, String val) {
+			this.id = id;
+			this.val = val;
+		}
+
+		public int getId() {
+			return id;
+		}
+
+		public String getVal() {
+			return val;
+		}
 	}
 
 	@Benchmark
@@ -93,18 +122,25 @@ public class SelectBenchmark {
 		return connection.select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE, Iter.ALL.getValue());
 	}
 
+	@Benchmark
+	public List<?> referenceClient() {
+		return referenceClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
+				Iter.ALL.getValue());
+	}
+
 	@TearDown
 	public void tearDown() {
-		client.evalFully("box.space.javabenchmark:drop()").consume();
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.evalFully("box.space.javabenchmark:drop()").consume();
+		}
 		connection.close();
-		client.close();
+		referenceClient.close();
+		clientSource.close();
 	}
 
 	public static void main(String[] args) throws RunnerException {
-		Options opt = new OptionsBuilder()
-				.include(".*" + SelectBenchmark.class.getSimpleName() + ".*")
-				.addProfiler(GCProfiler.class)
-				.build();
+		Options opt = new OptionsBuilder().include(".*" + SelectBenchmark.class.getSimpleName() + ".*")
+				.addProfiler(GCProfiler.class).build();
 
 		new Runner(opt).run();
 	}

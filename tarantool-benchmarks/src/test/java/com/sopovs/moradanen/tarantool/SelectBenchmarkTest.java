@@ -18,8 +18,14 @@ public class SelectBenchmarkTest {
 
 	@Test
 	public void testClient() throws Exception {
-		assertEquals(33, benchmark.client());
+		assertEquals(33, benchmark.client().size());
 	}
+	
+	@Test
+	public void testReferenceClient() throws Exception {
+		assertEquals(33, benchmark.referenceClient().size());
+	}
+	
 
 	@Test
 	public void testConnection() {
