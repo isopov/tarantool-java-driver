@@ -11,6 +11,12 @@ public class TarantoolTemplate {
 		this.clientSource = clientSource;
 	}
 
+	public void ping() {
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.ping();
+		}
+	}
+
 	public <T> T selectAll(int space, ResultExtractor<T> extractor) {
 		try (TarantoolClient client = clientSource.getClient()) {
 			client.selectAll(space);

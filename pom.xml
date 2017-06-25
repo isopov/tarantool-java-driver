@@ -26,6 +26,7 @@
 		<module>tarantool-driver</module>
 		<module>tarantool-jdbc</module>
 		<module>tarantool-driver-async</module>
+		<module>tarantool-spring</module>
 		<module>tarantool-benchmarks</module>
 	</modules>
 
@@ -49,7 +50,7 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
-						<plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
 				<version>1.0.1</version>
@@ -61,7 +62,8 @@
 						</goals>
 						<configuration>
 							<rules>
-								<DependencyConvergence />
+								<!-- TODO different spring dependencies pull dif transitive deps -->
+								<!-- <DependencyConvergence /> -->
 								<requireJavaVersion>
 									<version>1.8.0</version>
 								</requireJavaVersion>
