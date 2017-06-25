@@ -43,13 +43,17 @@ public class Result {
 		return current.size();
 	}
 
-	public void next() {
-		counter++;
-		try {
-			current = unpacker.unpackValue().asArrayValue();
-		} catch (IOException e) {
-			throw new TarantoolException(e);
+	public boolean next() {
+		if (hasNext()) {
+			counter++;
+			try {
+				current = unpacker.unpackValue().asArrayValue();
+			} catch (IOException e) {
+				throw new TarantoolException(e);
+			}
+			return true;
 		}
+		return false;
 	}
 
 	public void consume() {

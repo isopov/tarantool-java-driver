@@ -2,10 +2,12 @@ package com.sopovs.moradanen.tarantool;
 
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -26,11 +28,13 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 
-
-//Benchmark                                     (type)  Mode  Cnt    Score    Error  Units
-//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  151.573 ±  1.951  us/op
-//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  161.725 ± 10.787  us/op
-//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  152.732 ±  1.209  us/op
+//Benchmark                                        (type)  Mode  Cnt      Score      Error  Units
+//ConcurrentSelectBenchmark.select        referenceClient  avgt   15    155.582 ±    3.293  us/op
+//ConcurrentSelectBenchmark.select     pooledClientSource  avgt   15    166.061 ±    8.467  us/op
+//ConcurrentSelectBenchmark.select            threadLocal  avgt   15    154.984 ±    1.354  us/op
+//ConcurrentSelectBenchmark.selectAll     referenceClient  avgt   15  60446.579 ± 1454.584  us/op
+//ConcurrentSelectBenchmark.selectAll  pooledClientSource  avgt   15  23729.235 ±  580.103  us/op
+//ConcurrentSelectBenchmark.selectAll         threadLocal  avgt   15  23934.715 ±  762.801  us/op
 //
 //
 //Simulating network latency of 100 us with
@@ -50,7 +54,6 @@ import org.tarantool.TarantoolClientConfig;
 //ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2167.582 ± 17.756  us/op
 //ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2164.908 ± 13.743  us/op
 
-
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
 @State(Scope.Benchmark)
@@ -60,27 +63,30 @@ import org.tarantool.TarantoolClientConfig;
 @Threads(16)
 public class ConcurrentSelectBenchmark {
 
-	public int size = 1000;
+	private static final String THREAD_LOCAL = "threadLocal";
+	private static final String POOLED_CLIENT_SOURCE = "pooledClientSource";
+	private static final String REFERENCE_CLIENT = "referenceClient";
+	public int size = 10000;
 	private org.tarantool.TarantoolClient referenceClient;
 	private TarantoolClientSource clientSource;
 	private ThreadLocal<TarantoolClient> threadLocalClient;
 	private int space;
 
-	@Param({ "referenceClient", "pooledClientSource", "threadLocal" })
+	@Param({ REFERENCE_CLIENT, POOLED_CLIENT_SOURCE, THREAD_LOCAL })
 	public String type;
 
 	@Setup
 	public void setup() throws Exception {
 		switch (type) {
-		case "referenceClient":
+		case REFERENCE_CLIENT:
 			SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
 			referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
 					new TarantoolClientConfig());
 			break;
-		case "pooledClientSource":
+		case POOLED_CLIENT_SOURCE:
 			clientSource = new TarantoolPooledClientSource("localhost", 3301, 16);
 			break;
-		case "threadLocal":
+		case THREAD_LOCAL:
 			threadLocalClient = ThreadLocal.withInitial(() -> new TarantoolClientImpl("localhost"));
 			break;
 		default:
@@ -106,12 +112,26 @@ public class ConcurrentSelectBenchmark {
 	@Benchmark
 	public String select() {
 		switch (type) {
-		case "referenceClient":
+		case REFERENCE_CLIENT:
 			return referenceClient();
-		case "pooledClientSource":
+		case POOLED_CLIENT_SOURCE:
 			return clientSource();
-		case "threadLocal":
+		case THREAD_LOCAL:
 			return threadLocal();
+		default:
+			throw new IllegalStateException();
+		}
+	}
+
+	@Benchmark
+	public List<String> selectAll() {
+		switch (type) {
+		case REFERENCE_CLIENT:
+			return referenceClientAll();
+		case POOLED_CLIENT_SOURCE:
+			return clientSourceAll();
+		case THREAD_LOCAL:
+			return threadLocalAll();
 		default:
 			throw new IllegalStateException();
 		}
@@ -120,6 +140,16 @@ public class ConcurrentSelectBenchmark {
 	protected String clientSource() {
 		try (TarantoolClient client = clientSource.getClient()) {
 			return fromClient(client);
+		}
+	}
+
+	protected List<String> threadLocalAll() {
+		return fromClientAll(threadLocalClient.get());
+	}
+
+	protected List<String> clientSourceAll() {
+		try (TarantoolClient client = clientSource.getClient()) {
+			return fromClientAll(client);
 		}
 	}
 
@@ -139,6 +169,19 @@ public class ConcurrentSelectBenchmark {
 		return result.getString(1);
 	}
 
+	private List<String> fromClientAll(TarantoolClient client) {
+		client.selectAll(space);
+		Result select = client.execute();
+		if (select.getSize() != size) {
+			throw new IllegalStateException();
+		}
+		List<String> result = new ArrayList<>(select.getSize());
+		while (select.next()) {
+			result.add(select.getString(1));
+		}
+		return result;
+	}
+
 	protected String referenceClient() {
 		int key = ThreadLocalRandom.current().nextInt(size);
 		List<?> result = referenceClient.syncOps().select(space, 0, Collections.singletonList(key), 0,
@@ -149,19 +192,29 @@ public class ConcurrentSelectBenchmark {
 		return (String) ((List<?>) result.get(0)).get(1);
 	}
 
+	protected List<String> referenceClientAll() {
+		List<?> result = referenceClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
+				Iter.ALL.getValue());
+		if (result.size() != size) {
+			throw new IllegalStateException();
+		}
+		return result.stream().map(List.class::cast).map(row -> row.get(1)).map(String.class::cast)
+				.collect(Collectors.toList());
+	}
+
 	@TearDown
 	public void tearDown() {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.space.javabenchmark:drop()").consume();
 		}
 		switch (type) {
-		case "referenceClient":
+		case REFERENCE_CLIENT:
 			referenceClient.close();
 			break;
-		case "pooledClientSource":
+		case POOLED_CLIENT_SOURCE:
 			clientSource.close();
 			break;
-		case "threadLocal":
+		case THREAD_LOCAL:
 			// TODO leave to gc?
 			break;
 		default:

@@ -1,6 +1,10 @@
 package com.sopovs.moradanen.tarantool;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +40,35 @@ public class ConcurrentSelectBenchmarkTest {
 		assertTrue(benchmark.threadLocal().startsWith("FooBar"));
 	}
 	
+	
+	@Test
+	public void testClientAll() throws Exception {
+		benchmark.type = "pooledClientSource";
+		benchmark.setup();
+		assertEquals(expectedAll(), benchmark.clientSourceAll());
+	}
+
+	@Test
+	public void testReferenceClientAll() throws Exception {
+		benchmark.type = "referenceClient";
+		benchmark.setup();
+		assertEquals(expectedAll(), benchmark.referenceClientAll());
+	}
+	
+	@Test
+	public void testThreadLocalAll() throws Exception {
+		benchmark.type = "threadLocal";
+		benchmark.setup();
+		assertEquals(expectedAll(), benchmark.threadLocalAll());
+	}
+	
+	private static List<String> expectedAll(){
+		List<String> result = new ArrayList<>(33);
+		for (int i = 0; i < 33; i++) {
+			result.add("FooBar" + i);
+		}
+		return result;
+	}
 
 	@After
 	public void tearDown() {
