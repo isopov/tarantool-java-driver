@@ -1,6 +1,5 @@
 package com.sopovs.moradanen.tarantool;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -14,19 +13,29 @@ public class ConcurrentSelectBenchmarkTest {
 	@Before
 	public void setup() throws Exception {
 		benchmark.size = 33;
-		benchmark.setup();
 	}
 
 	@Test
 	public void testClient() throws Exception {
-		assertTrue(benchmark.client().startsWith("FooBar"));
+		benchmark.type = "pooledClientSource";
+		benchmark.setup();
+		assertTrue(benchmark.clientSource().startsWith("FooBar"));
 	}
 
 	@Test
 	public void testReferenceClient() throws Exception {
-		Object foo = benchmark.referenceClient();
-		assertNotNull(foo);
+		benchmark.type = "referenceClient";
+		benchmark.setup();
+		assertTrue(benchmark.referenceClient().startsWith("FooBar"));
 	}
+	
+	@Test
+	public void testThreadLocal() throws Exception {
+		benchmark.type = "threadLocal";
+		benchmark.setup();
+		assertTrue(benchmark.threadLocal().startsWith("FooBar"));
+	}
+	
 
 	@After
 	public void tearDown() {

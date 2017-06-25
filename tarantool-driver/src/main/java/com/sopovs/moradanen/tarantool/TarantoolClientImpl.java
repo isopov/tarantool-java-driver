@@ -12,6 +12,7 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.core.buffer.MessageBuffer;
 
+//TODO finalize equivalent via PhantomReference
 public class TarantoolClientImpl implements TarantoolClient {
 	private final Socket socket;
 	private final MessageUnpacker unpacker;

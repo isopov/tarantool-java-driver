@@ -13,6 +13,7 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -25,23 +26,30 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 
-//Benchmark                                  Mode  Cnt      Score    Error  Units
-//ConcurrentSelectBenchmark.client           avgt   15  163.153 ± 6.217  us/op
-//ConcurrentSelectBenchmark.referenceClient  avgt   15  155.670 ± 2.891  us/op
 
+//Benchmark                                     (type)  Mode  Cnt    Score    Error  Units
+//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  151.573 ±  1.951  us/op
+//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  161.725 ± 10.787  us/op
+//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  152.732 ±  1.209  us/op
+//
+//
+//Simulating network latency of 100 us with
+//`sudo tc qdisc add dev lo root handle 1:0 netem delay 100usec`
+//(To restore `sudo tc qdisc del dev lo root`)
+//Benchmark                                     (type)  Mode  Cnt    Score    Error  Units
+//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  575.669 ± 11.640  us/op
+//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  320.201 ±  4.336  us/op
+//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  317.752 ±  4.839  us/op
+//
+//
 //Simulating network latency of 1ms with
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 1msec`
 //(To restore `sudo tc qdisc del dev lo root`)
-//Benchmark                                  Mode  Cnt     Score    Error  Units
-//ConcurrentSelectBenchmark.client           avgt   15  2157.937 ± 11.086  us/op
-//ConcurrentSelectBenchmark.referenceClient  avgt   15  4357.253 ± 33.864  us/op
+//Benchmark                                     (type)  Mode  Cnt     Score    Error  Units
+//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  4476.049 ± 68.609  us/op
+//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2167.582 ± 17.756  us/op
+//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2164.908 ± 13.743  us/op
 
-//Simulating network latency of 10ms with
-//`sudo tc qdisc add dev lo root handle 1:0 netem delay 10msec`
-//(To restore `sudo tc qdisc del dev lo root`)
-//Benchmark                                  Mode  Cnt      Score    Error  Units
-//ConcurrentSelectBenchmark.client           avgt   15  20352.330 ± 25.479  us/op
-//ConcurrentSelectBenchmark.referenceClient  avgt   15  40481.864 ± 68.298  us/op
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
@@ -55,17 +63,31 @@ public class ConcurrentSelectBenchmark {
 	public int size = 1000;
 	private org.tarantool.TarantoolClient referenceClient;
 	private TarantoolClientSource clientSource;
+	private ThreadLocal<TarantoolClient> threadLocalClient;
 	private int space;
+
+	@Param({ "referenceClient", "pooledClientSource", "threadLocal" })
+	public String type;
 
 	@Setup
 	public void setup() throws Exception {
-		SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
-		referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
-				new TarantoolClientConfig());
+		switch (type) {
+		case "referenceClient":
+			SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
+			referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
+					new TarantoolClientConfig());
+			break;
+		case "pooledClientSource":
+			clientSource = new TarantoolPooledClientSource("localhost", 3301, 16);
+			break;
+		case "threadLocal":
+			threadLocalClient = ThreadLocal.withInitial(() -> new TarantoolClientImpl("localhost"));
+			break;
+		default:
+			throw new IllegalStateException();
+		}
 
-		clientSource = new TarantoolPooledClientSource("localhost", 3301, 16);
-
-		try (TarantoolClient client = clientSource.getClient()) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.space.create('javabenchmark')").consume();
 			client.evalFully(
 					"box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
@@ -79,27 +101,45 @@ public class ConcurrentSelectBenchmark {
 			}
 			client.executeBatch();
 		}
-
 	}
 
 	@Benchmark
-	public String client() {
-		try (TarantoolClient client = clientSource.getClient()) {
-			int key = ThreadLocalRandom.current().nextInt(size);
-			client.select(space, 0);
-			client.setInt(key);
-			Result result = client.execute();
-			if (result.getSize() != 1) {
-				throw new IllegalStateException();
-			}
-			result.next();
-			return result.getString(1);
-
+	public String select() {
+		switch (type) {
+		case "referenceClient":
+			return referenceClient();
+		case "pooledClientSource":
+			return clientSource();
+		case "threadLocal":
+			return threadLocal();
+		default:
+			throw new IllegalStateException();
 		}
 	}
 
-	@Benchmark
-	public String referenceClient() {
+	protected String clientSource() {
+		try (TarantoolClient client = clientSource.getClient()) {
+			return fromClient(client);
+		}
+	}
+
+	protected String threadLocal() {
+		return fromClient(threadLocalClient.get());
+	}
+
+	private String fromClient(TarantoolClient client) {
+		int key = ThreadLocalRandom.current().nextInt(size);
+		client.select(space, 0);
+		client.setInt(key);
+		Result result = client.execute();
+		if (result.getSize() != 1) {
+			throw new IllegalStateException();
+		}
+		result.next();
+		return result.getString(1);
+	}
+
+	protected String referenceClient() {
 		int key = ThreadLocalRandom.current().nextInt(size);
 		List<?> result = referenceClient.syncOps().select(space, 0, Collections.singletonList(key), 0,
 				Integer.MAX_VALUE, Iter.EQ.getValue());
@@ -111,11 +151,22 @@ public class ConcurrentSelectBenchmark {
 
 	@TearDown
 	public void tearDown() {
-		try (TarantoolClient client = clientSource.getClient()) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.space.javabenchmark:drop()").consume();
 		}
-		referenceClient.close();
-		clientSource.close();
+		switch (type) {
+		case "referenceClient":
+			referenceClient.close();
+			break;
+		case "pooledClientSource":
+			clientSource.close();
+			break;
+		case "threadLocal":
+			// TODO leave to gc?
+			break;
+		default:
+			throw new IllegalStateException();
+		}
 	}
 
 	public static void main(String[] args) throws RunnerException {
