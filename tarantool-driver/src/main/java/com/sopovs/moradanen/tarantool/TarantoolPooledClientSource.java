@@ -10,7 +10,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 
 	private boolean closed = false;
 	private final ArrayDeque<TarantoolClientProxy> pool;
-	
+
 	public TarantoolPooledClientSource(String host, int port, int size) {
 		pool = new ArrayDeque<>(size);
 		for (int i = 0; i < size; i++) {
@@ -42,7 +42,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			closed = true;
 			for (Iterator<TarantoolClientProxy> iterator = pool.iterator(); iterator.hasNext();) {
 				TarantoolClientProxy proxy = iterator.next();
-				//TODO handle close exceptions
+				// TODO handle close exceptions
 				proxy.client.close();
 				iterator.remove();
 			}
@@ -50,7 +50,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 
 	}
 
-	private class TarantoolClientProxy implements TarantoolClient {
+	private final class TarantoolClientProxy implements TarantoolClient {
 		private final TarantoolClient client;
 
 		@Override
@@ -149,6 +149,30 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		public void setString(String val) {
 			client.setString(val);
 		}
-	}
 
+		@Override
+		public void setNull() {
+			client.setNull();
+		}
+
+		@Override
+		public void setBoolean(boolean val) {
+			client.setBoolean(val);
+		}
+
+		@Override
+		public void setDouble(double val) {
+			client.setDouble(val);
+		}
+
+		@Override
+		public void setFloat(float val) {
+			client.setFloat(val);
+		}
+
+		@Override
+		public void setLong(long val) {
+			client.setLong(val);
+		}
+	}
 }

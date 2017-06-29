@@ -199,24 +199,21 @@ public class TarantoolClientImplTest {
 			testValue(client, 1);
 		}
 	}
-	
-	
-	
+
 	@Test
 	public void testUpsert() throws Exception {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
-			
+
 			testUpsertStep(client, 1);
 			testUpsertStep(client, 2);
 			testUpsertStep(client, 3);
 		}
 	}
-	
-	
+
 	@Test
-	public void testUpsertBatch() throws Exception{
+	public void testUpsertBatch() throws Exception {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
@@ -228,13 +225,13 @@ public class TarantoolClientImplTest {
 			testValue(client, 10);
 		}
 	}
-	
-	public void testUpsertStep(TarantoolClient client, int value){
+
+	public void testUpsertStep(TarantoolClient client, int value) {
 		testUpsertBatchStep(client);
 		Result upsert = client.execute();
 		assertEquals(0, upsert.getSize());
 		upsert.consume();
-		
+
 		testValue(client, value);
 	}
 
@@ -245,9 +242,8 @@ public class TarantoolClientImplTest {
 		client.setString("Foobar");
 		client.change(Op.PLUS, 1, 1);
 	}
-	
-	
-	private void testValue(TarantoolClient client, int value){
+
+	private void testValue(TarantoolClient client, int value) {
 		client.select("javatest", 0);
 		client.setInt(1);
 		Result select = client.execute();
@@ -257,7 +253,4 @@ public class TarantoolClientImplTest {
 		assertEquals(value, select.getInt(1));
 		assertEquals("Foobar", select.getString(2));
 	}
-	
-	
-
 }

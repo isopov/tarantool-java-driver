@@ -37,13 +37,14 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 
 	}
 
-	private class TarantoolClientProxy implements TarantoolClient {
+	private final class TarantoolClientProxy implements TarantoolClient {
 		private final TarantoolClient client;
 
 		@Override
 		public void close() {
 			synchronized (lock) {
 				given = false;
+				lock.notify();
 			}
 		}
 
@@ -130,6 +131,35 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		@Override
 		public void setString(String val) {
 			client.setString(val);
+		}
+
+		@Override
+		public void setNull() {
+			client.setNull();
+
+		}
+
+		@Override
+		public void setBoolean(boolean val) {
+			client.setBoolean(val);
+
+		}
+
+		@Override
+		public void setDouble(double val) {
+			client.setDouble(val);
+
+		}
+
+		@Override
+		public void setFloat(float val) {
+			client.setFloat(val);
+
+		}
+
+		@Override
+		public void setLong(long val) {
+			client.setLong(val);
 		}
 	}
 }

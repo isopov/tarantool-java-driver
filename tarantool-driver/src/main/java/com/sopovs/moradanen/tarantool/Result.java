@@ -31,6 +31,26 @@ public class Result {
 		return counter < size;
 	}
 
+	public boolean isNull(int index) {
+		return current.get(index).isNilValue();
+	}
+
+	public boolean getBoolean(int index) {
+		return current.get(index).asBooleanValue().getBoolean();
+	}
+
+	public double getDouble(int index) {
+		return current.get(index).asFloatValue().toDouble();
+	}
+
+	public double getFloat(int index) {
+		return current.get(index).asFloatValue().toFloat();
+	}
+
+	public long getLong(int index) {
+		return current.get(index).asIntegerValue().asLong();
+	}
+
 	public int getInt(int index) {
 		return current.get(index).asIntegerValue().asInt();
 	}

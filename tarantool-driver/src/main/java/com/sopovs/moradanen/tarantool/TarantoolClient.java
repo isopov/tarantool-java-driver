@@ -98,14 +98,24 @@ public interface TarantoolClient extends Closeable {
 	}
 
 	void update(int space, int index);
-	
+
 	void upsert(int space);
 
 	void change(Op op, int field, int arg);
 
 	void ping();
 
+	void setNull();
+
+	void setBoolean(boolean val);
+
+	void setDouble(double val);
+
+	void setFloat(float val);
+
 	void setInt(int val);
+
+	void setLong(long val);
 
 	void setString(String val);
 

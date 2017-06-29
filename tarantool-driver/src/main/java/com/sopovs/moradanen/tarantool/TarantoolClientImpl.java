@@ -338,6 +338,58 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	@Override
+	public void setNull() {
+		try {
+			querySize++;
+			queryPacker.packNil();
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+
+	}
+
+	@Override
+	public void setLong(long val) {
+		try {
+			querySize++;
+			queryPacker.packLong(val);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void setBoolean(boolean val) {
+		try {
+			querySize++;
+			queryPacker.packBoolean(val);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void setDouble(double val) {
+		try {
+			querySize++;
+			queryPacker.packDouble(val);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+
+	}
+
+	@Override
+	public void setFloat(float val) {
+		try {
+			querySize++;
+			queryPacker.packFloat(val);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
 	public void setInt(int val) {
 		try {
 			querySize++;
