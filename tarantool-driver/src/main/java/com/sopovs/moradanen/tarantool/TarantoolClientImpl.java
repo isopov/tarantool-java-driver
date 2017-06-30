@@ -56,6 +56,10 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 	}
 
+	public TarantoolClientImpl(TarantoolConfig config) {
+		this(config.getHost(), config.getPort());
+	}
+
 	public TarantoolClientImpl(String host) {
 		this(host, 3301);
 	}

@@ -2,26 +2,38 @@ package com.sopovs.moradanen.tarantool;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.function.Function;
 
-//TODO remove clients after exceptions from pool
-//TODO add clients to the size after removing
 //TODO lazy clients creation and closing clients that are stale for too long
 public class TarantoolPooledClientSource implements TarantoolClientSource {
 
-	private boolean closed = false;
+	private boolean poolClosed = false;
 	private final ArrayDeque<TarantoolClientProxy> pool;
+	private final int size;
+	private int currentSize;
+	private final TarantoolConfig config;
+	private final Function<TarantoolConfig, TarantoolClient> clientFactory;
+
+	public TarantoolPooledClientSource(TarantoolConfig config,
+			Function<TarantoolConfig, TarantoolClient> clientFactory,
+			int size) {
+		this.config = config;
+		this.clientFactory = clientFactory;
+		this.size = size;
+		this.pool = new ArrayDeque<>(size);
+	}
 
 	public TarantoolPooledClientSource(String host, int port, int size) {
-		pool = new ArrayDeque<>(size);
-		for (int i = 0; i < size; i++) {
-			pool.add(new TarantoolClientProxy(new TarantoolClientImpl(host, port)));
-		}
+		this(new TarantoolConfig(host, port, null, null), TarantoolClientImpl::new, size);
 	}
 
 	@Override
 	public TarantoolClient getClient() {
 		synchronized (pool) {
-			while (!closed) {
+			while (!poolClosed) {
+				if (currentSize < size) {
+					return new TarantoolClientProxy(clientFactory.apply(config));
+				}
 				TarantoolClientProxy client = pool.pollFirst();
 				if (client != null) {
 					return client;
@@ -39,12 +51,23 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 	@Override
 	public void close() {
 		synchronized (pool) {
-			closed = true;
+			poolClosed = true;
+			TarantoolException poolCloseException = null;
 			for (Iterator<TarantoolClientProxy> iterator = pool.iterator(); iterator.hasNext();) {
 				TarantoolClientProxy proxy = iterator.next();
-				// TODO handle close exceptions
-				proxy.client.close();
+				try {
+					proxy.client.close();
+				} catch (TarantoolException e) {
+					if (poolCloseException == null) {
+						poolCloseException = new TarantoolException("Problem closing pooled client(s)");
+					}
+					poolCloseException.addSuppressed(e);
+				}
 				iterator.remove();
+			}
+			 pool.notifyAll();
+			if (poolCloseException != null) {
+				throw poolCloseException;
 			}
 		}
 
@@ -52,11 +75,16 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 
 	private final class TarantoolClientProxy implements TarantoolClient {
 		private final TarantoolClient client;
+		private boolean closed = false;
 
 		@Override
 		public void close() {
 			synchronized (pool) {
 				if (closed) {
+					return;
+				}
+				if (poolClosed) {
+					closed = true;
 					client.close();
 				} else {
 					pool.add(this);
@@ -65,114 +93,201 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			}
 		}
 
+		private TarantoolException closeOnException(TarantoolException e) {
+			synchronized (pool) {
+				closed = true;
+				pool.notify();
+			}
+			try {
+				client.close();
+			} catch (TarantoolException closeException) {
+				e.addSuppressed(closeException);
+			}
+			return e;
+		}
+
 		public TarantoolClientProxy(TarantoolClient client) {
 			this.client = client;
 		}
 
 		@Override
 		public Result execute() {
-			return client.execute();
+			try {
+				return client.execute();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void addBatch() {
-			client.addBatch();
-
+			try {
+				client.addBatch();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void executeBatch() {
-			client.executeBatch();
+			try {
+				client.executeBatch();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void select(int space, int index, int limit, int offset, Iter iterator) {
-			client.select(space, index, limit, offset, iterator);
+			try {
+				client.select(space, index, limit, offset, iterator);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void selectAll(int space, int limit, int offset) {
-			client.selectAll(space, limit, offset);
-
+			try {
+				client.selectAll(space, limit, offset);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void eval(String expression) {
-			client.eval(expression);
+			try {
+				client.eval(expression);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void insert(int space) {
-			client.insert(space);
+			try {
+				client.insert(space);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void replace(int space) {
-			client.replace(space);
+			try {
+				client.replace(space);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void delete(int space, int index) {
-			client.delete(space, index);
-
+			try {
+				client.delete(space, index);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void update(int space, int index) {
-			client.update(space, index);
+			try {
+				client.update(space, index);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void upsert(int space) {
-			client.upsert(space);
-
+			try {
+				client.upsert(space);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void change(Op op, int field, int arg) {
-			client.change(op, field, arg);
-
+			try {
+				client.change(op, field, arg);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void ping() {
-			client.ping();
-
+			try {
+				client.ping();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setInt(int val) {
-			client.setInt(val);
+			try {
+				client.setInt(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setString(String val) {
-			client.setString(val);
+			try {
+				client.setString(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setNull() {
-			client.setNull();
+			try {
+				client.setNull();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setBoolean(boolean val) {
-			client.setBoolean(val);
+			try {
+				client.setBoolean(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setDouble(double val) {
-			client.setDouble(val);
+			try {
+				client.setDouble(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setFloat(float val) {
-			client.setFloat(val);
+			try {
+				client.setFloat(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 
 		@Override
 		public void setLong(long val) {
-			client.setLong(val);
+			try {
+				client.setLong(val);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
 		}
 	}
 }
