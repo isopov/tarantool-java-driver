@@ -21,6 +21,36 @@ public class TarantoolClientImplTest {
 	}
 
 	@Test
+	public void testAuthSuccess() {
+		testAuth("foobar", "foobar");
+	}
+
+	@Test
+	public void testWrongPassword() {
+		thrown.expect(TarantoolAuthException.class);
+		thrown.expectMessage("Incorrect password supplied for user 'foobar'");
+		testAuth("foobar", "barfoo");
+	}
+	
+	@Test
+	public void testWrongUser() {
+		thrown.expect(TarantoolAuthException.class);
+		thrown.expectMessage("User 'barfoo' is not found");
+		testAuth("barfoo", "barfoo");
+	}
+	
+	public static void testAuth(String login, String password) {
+		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+			client.evalFully("box.schema.user.drop('foobar',{if_exists=true})").consume();
+			client.evalFully("box.schema.user.create('foobar', {password = 'foobar'})").consume();
+			try (TarantoolClientImpl authClient = new TarantoolClientImpl("localhost", 3301, login, password)) {
+				selectInternal(authClient);
+			}
+			client.evalFully("box.schema.user.drop('foobar')").consume();
+		}
+	}
+
+	@Test
 	public void testPing() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			client.ping();
@@ -30,13 +60,16 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testSelect() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-
-			client.selectAll(Util.SPACE_VSPACE);
-			Result result = client.execute();
-			assertTrue(result.getSize() > 0);
-			result.consume();
-			assertFalse(result.hasNext());
+			selectInternal(client);
 		}
+	}
+
+	private static void selectInternal(TarantoolClient client) {
+		client.selectAll(Util.SPACE_VSPACE);
+		Result result = client.execute();
+		assertTrue(result.getSize() > 0);
+		result.consume();
+		assertFalse(result.hasNext());
 	}
 
 	@Test

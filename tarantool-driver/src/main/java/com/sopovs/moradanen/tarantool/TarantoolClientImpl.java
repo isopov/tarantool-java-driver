@@ -5,6 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.List;
 
 import org.msgpack.core.MessageBufferPacker;
@@ -57,7 +60,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	public TarantoolClientImpl(TarantoolConfig config) {
-		this(config.getHost(), config.getPort());
+		this(config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
 	}
 
 	public TarantoolClientImpl(String host) {
@@ -66,7 +69,10 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	public TarantoolClientImpl(String host, int port) {
 		this(createSocket(host, port));
+	}
 
+	public TarantoolClientImpl(String host, int port, String login, String password) {
+		this(createSocket(host, port), login, password);
 	}
 
 	private static Socket createSocket(String host, int port) {
@@ -78,11 +84,15 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	public TarantoolClientImpl(Socket socket) {
+		this(socket, null, null);
+	}
+
+	public TarantoolClientImpl(Socket socket, String login, String password) {
 		this.socket = socket;
 		try {
 			unpacker = MessagePack.newDefaultUnpacker(socket.getInputStream());
 			out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-			connect();
+			connect(login, password);
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -274,8 +284,58 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 	}
 
-	private void connect() throws IOException {
-		unpacker.readPayload(ByteBuffer.allocate(128));
+	private void connect(String login, String password) throws IOException {
+		unpacker.readPayload(ByteBuffer.allocate(64));// greeting
+		final byte[] salt = new byte[44];
+		unpacker.readPayload(salt);
+		unpacker.readPayload(ByteBuffer.allocate(20));// unused
+		if (login != null) {
+			writeCode(Util.CODE_AUTH);
+			packer.packMapHeader(2);
+			packer.packInt(Util.KEY_USER_NAME);
+			packer.packString(login);
+			packer.packInt(Util.KEY_TUPLE);
+			packer.packArrayHeader(2);
+			packer.packString("chap-sha1");
+			packer.packBinaryHeader(20);
+			packer.addPayload(scramble(password, salt));
+			finishQuery();
+			// unpacker.unpackByte();
+			int bodySize = flushAndGetResultSize(false);
+			if (bodySize == 1) {
+				byte bodyKey = unpacker.unpackByte();
+				if (bodyKey == Util.KEY_ERROR) {
+					throw new TarantoolAuthException(unpacker.unpackString());
+				} else {
+					throw new TarantoolException("Unknown body Key " + bodyKey);
+				}
+			}
+			if (bodySize > 1) {
+				throw new TarantoolException("Body size " + bodySize + " for auth");
+			}
+		}
+	}
+
+	private static byte[] scramble(String password, byte[] salt) {
+		final MessageDigest sha1;
+		try {
+			sha1 = MessageDigest.getInstance("SHA-1");
+		} catch (NoSuchAlgorithmException e) {
+			throw new TarantoolException(e);
+		}
+
+		byte[] step1 = sha1.digest(password.getBytes());
+
+		sha1.reset();
+		byte[] step2 = sha1.digest(step1);
+		sha1.reset();
+		sha1.update(Base64.getDecoder().decode(salt), 0, 20);
+		sha1.update(step2);
+		byte[] step3 = sha1.digest();
+		for (int i = 0; i < 20; i++) {
+			step1[i] ^= step3[i];
+		}
+		return step1;
 	}
 
 	@Override
