@@ -13,8 +13,8 @@ cache:
 sudo: required
 #matrix of builds
 before_script:
-  - ./install_tarantool17.sh
-  - ./install_tarantool18.sh
+- ./install_tarantool17.sh
+- ./install_tarantool18.sh
 
 script: ./mvnw clean package
 
