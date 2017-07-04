@@ -1,6 +1,20 @@
-sudo: required
-before_script:
-  - ./install_tarantool.sh
 language: java
 jdk:
   - oraclejdk8
+
+#ignore default install step
+install: true
+
+#cache dependencies
+cache:
+  directories:
+    - $HOME/.m2/repository
+
+sudo: required
+#matrix of builds
+before_script:
+  - ./install_tarantool17.sh
+  - ./install_tarantool18.sh
+
+script: ./mvnw clean package
+
