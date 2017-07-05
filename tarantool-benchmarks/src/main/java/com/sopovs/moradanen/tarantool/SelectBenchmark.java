@@ -80,7 +80,7 @@ public class SelectBenchmark {
 		try (TarantoolClient client = clientSource.getClient()) {
 			client.evalFully("box.schema.space.create('javabenchmark')").consume();
 			client.evalFully(
-					"box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
+					"box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
 					.consume();
 			space = client.space("javabenchmark");
 			for (int i = 0; i < size; i++) {

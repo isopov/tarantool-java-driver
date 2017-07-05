@@ -10,14 +10,23 @@ cache:
   directories:
     - $HOME/.m2/repository
 
-#matrix of builds
-env:
-  - TARANTOOL_VERSION=7
-  - TARANTOOL_VERSION=8
 
 sudo: required
-before_script:
-  - ./install_tarantool.sh
+
+#matrix of builds
+jobs:
+  include: 
+    - env: TARANTOOL_VERSION=7
+      before_script: ./install_tarantool.sh
+    - env: TARANTOOL_VERSION=8
+      before_script: ./install_tarantool.sh
+    #Tarantool 1.6 does not come with example.lua
+    - env: TARANTOOL_VERSION=6
+      before_script:
+        - ./install_tarantool.sh
+        - sudo cp example.lua /etc/tarantool/instances.available/
+        - sudo ln -s /etc/tarantool/instances.available/example.lua /etc/tarantool/instances.enabled/example.lua
+        - sudo service tarantool start
 
 script: ./mvnw clean package
 

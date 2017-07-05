@@ -126,7 +126,7 @@ public class TarantoolClientImplTest {
 	public void testEval() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.space.create('javatest')");
-			client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})");
+			client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})");
 			client.evalFully("box.space.javatest:drop()");
 		}
 	}
@@ -186,7 +186,7 @@ public class TarantoolClientImplTest {
 
 	private static void createTestSpace(TarantoolClientImpl client) {
 		client.evalFully("box.schema.space.create('javatest')").consume();
-		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})")
+		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
 				.consume();
 	}
 
