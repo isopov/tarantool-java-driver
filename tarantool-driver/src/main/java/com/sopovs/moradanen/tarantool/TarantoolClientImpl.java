@@ -17,6 +17,11 @@ import org.msgpack.core.buffer.MessageBuffer;
 
 //TODO finalize equivalent via PhantomReference
 public class TarantoolClientImpl implements TarantoolClient {
+	static final String PRE_CHANGE_EXCEPTION = "Need to call update/upsert before change";
+	static final String EXECUTE_ABSENT_EXCEPTION = "Trying to execute absent query";
+	static final String PRE_ACTION_EXCEPTION = "Execute or add to batch action before starting next one";
+	static final String PRE_SET_EXCEPTION = "Need to call one of update/insert/upsert/delete before setting tuple value";
+
 	private final Socket socket;
 	private final MessageUnpacker unpacker;
 	private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
@@ -55,7 +60,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 			return Util.KEY_UPSERT_OPS;
 		case 0:
 		default:
-			throw new TarantoolException("Trying to execute absent query");
+			throw new TarantoolException(EXECUTE_ABSENT_EXCEPTION);
 		}
 	}
 
@@ -175,12 +180,13 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void eval(String expression) {
+		preActionCheck();
+		currentQuery = EVAL;
 		try {
 			writeCode(Util.CODE_EVAL);
 			packer.packMapHeader(2);
 			packer.packInt(Util.KEY_EXPRESSION);
 			packer.packString(expression);
-			currentQuery = EVAL;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -372,7 +378,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	private void preActionCheck() {
 		if (currentQuery != 0) {
-			throw new TarantoolException("Execute or add to batch action before starting next one");
+			throw new TarantoolException(PRE_ACTION_EXCEPTION);
 		}
 	}
 
@@ -409,7 +415,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	private void preSetCheck() {
 		if (currentQuery == 0) {
-			throw new TarantoolException("Need to call one of update/insert/upsert/delete from setting tuple value");
+			throw new TarantoolException(PRE_SET_EXCEPTION);
 		}
 	}
 
@@ -532,6 +538,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 			} else if (currentQuery == UPSERT_TUPLE) {
 				writeQuery();
 				currentQuery = UPSERT_OPS;
+			} else if (currentQuery != UPDATE_TUPLE && currentQuery != UPSERT_OPS) {
+				throw new TarantoolException(PRE_CHANGE_EXCEPTION);
 			}
 			querySize++;
 			queryPacker.packArrayHeader(3);

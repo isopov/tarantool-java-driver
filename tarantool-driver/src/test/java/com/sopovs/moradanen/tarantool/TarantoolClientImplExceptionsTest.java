@@ -1,5 +1,9 @@
 package com.sopovs.moradanen.tarantool;
 
+import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.EXECUTE_ABSENT_EXCEPTION;
+import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_ACTION_EXCEPTION;
+import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_CHANGE_EXCEPTION;
+import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_SET_EXCEPTION;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.testAuth;
 
 import java.util.function.Consumer;
@@ -7,6 +11,8 @@ import java.util.function.Consumer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.sopovs.moradanen.tarantool.TarantoolClient.Op;
 
 public class TarantoolClientImplExceptionsTest {
 	@Rule
@@ -65,21 +71,35 @@ public class TarantoolClientImplExceptionsTest {
 		testSetWithoutAction(TarantoolClient::setNull);
 	}
 
-	private void testSetWithoutAction(Consumer<TarantoolClient> setter) {
-		thrown.expect(TarantoolException.class);
-		thrown.expectMessage("Need to call one of update/insert/upsert/delete from setting tuple value");
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			setter.accept(client);
-		}
+	@Test
+	public void testChangeWithoutUpdate() {
+		testException(PRE_CHANGE_EXCEPTION, c -> c.change(Op.AND, 1, 1));
+	}
+
+	@Test
+	public void testChangeAfterInsert() {
+		testException(PRE_CHANGE_EXCEPTION, c -> {
+			c.insert(42);
+			c.change(Op.AND, 1, 1);
+		});
+	}
+
+	@Test
+	public void testChangeAfterSelect() {
+		testException(PRE_CHANGE_EXCEPTION, c -> {
+			c.select(42, 1);
+			c.change(Op.AND, 1, 1);
+		});
 	}
 
 	@Test
 	public void testExecuteWithoutAction() {
-		thrown.expect(TarantoolException.class);
-		thrown.expectMessage("Trying to execute absent query");
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			client.execute();
-		}
+		testException(EXECUTE_ABSENT_EXCEPTION, TarantoolClient::execute);
+	}
+
+	@Test
+	public void testDoubleEvalWithoutExecute() {
+		testPreActionCheck(c -> c.eval("foobar"));
 	}
 
 	@Test
@@ -102,12 +122,26 @@ public class TarantoolClientImplExceptionsTest {
 		testPreActionCheck(c -> c.upsert(42));
 	}
 
-	private void testPreActionCheck(Consumer<TarantoolClient> action) {
+	private void testException(String message, Consumer<TarantoolClient> setter) {
 		thrown.expect(TarantoolException.class);
-		thrown.expectMessage("Execute or add to batch action before starting next one");
+		thrown.expectMessage(message);
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			action.accept(client);
-			action.accept(client);
+			setter.accept(client);
 		}
+	}
+
+	private void testExceptionDoubleAccept(String message, Consumer<TarantoolClient> action) {
+		testException(message, c -> {
+			action.accept(c);
+			action.accept(c);
+		});
+	}
+
+	private void testSetWithoutAction(Consumer<TarantoolClient> setter) {
+		testException(PRE_SET_EXCEPTION, setter);
+	}
+
+	private void testPreActionCheck(Consumer<TarantoolClient> action) {
+		testExceptionDoubleAccept(PRE_ACTION_EXCEPTION, action);
 	}
 }
