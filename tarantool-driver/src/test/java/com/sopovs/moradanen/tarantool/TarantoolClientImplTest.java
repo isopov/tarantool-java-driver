@@ -4,16 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.sopovs.moradanen.tarantool.TarantoolClient.Op;
 
 public class TarantoolClientImplTest {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-
 	@Test
 	public void testConnect() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
@@ -25,20 +20,6 @@ public class TarantoolClientImplTest {
 		testAuth("foobar", "foobar");
 	}
 
-	@Test
-	public void testWrongPassword() {
-		thrown.expect(TarantoolAuthException.class);
-		thrown.expectMessage("Incorrect password supplied for user 'foobar'");
-		testAuth("foobar", "barfoo");
-	}
-	
-	@Test
-	public void testWrongUser() {
-		thrown.expect(TarantoolAuthException.class);
-		thrown.expectMessage("User 'barfoo' is not found");
-		testAuth("barfoo", "barfoo");
-	}
-	
 	public static void testAuth(String login, String password) {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.user.drop('foobar',{if_exists=true})").consume();
@@ -114,15 +95,6 @@ public class TarantoolClientImplTest {
 	}
 
 	@Test
-	public void testNoSpace() {
-		thrown.expect(TarantoolException.class);
-		thrown.expectMessage("No such space no_such_space");
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
-			client.space("no_such_space");
-		}
-	}
-
-	@Test
 	public void testEval() {
 		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.space.create('javatest')");
@@ -186,8 +158,7 @@ public class TarantoolClientImplTest {
 
 	private static void createTestSpace(TarantoolClientImpl client) {
 		client.evalFully("box.schema.space.create('javatest')").consume();
-		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
-				.consume();
+		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})").consume();
 	}
 
 	@Test

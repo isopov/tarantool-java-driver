@@ -55,7 +55,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 			return Util.KEY_UPSERT_OPS;
 		case 0:
 		default:
-			throw new IllegalArgumentException();
+			throw new TarantoolException("Trying to execute absent query");
 		}
 	}
 
@@ -204,6 +204,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	private void selectInternal(int headSize, int space, int limit, int offset, Iter iterator) {
+		preActionCheck();
+		currentQuery = SELECT;
 		try {
 			writeCode(Util.CODE_SELECT);
 			if (offset == 0) {
@@ -221,8 +223,6 @@ public class TarantoolClientImpl implements TarantoolClient {
 				packer.packInt(Util.KEY_ITERATOR);
 				packer.packInt(iterator.getValue());
 			}
-			assert currentQuery == 0;
-			currentQuery = SELECT;
 			packer.packInt(Util.KEY_LIMIT);
 			packer.packInt(limit);
 			if (offset != 0) {
@@ -358,27 +358,33 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	private void insertOrReplace(int code, int space) {
+		preActionCheck();
+		currentQuery = INSERT;
 		try {
 			writeCode(code);
 			packer.packMapHeader(2);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			assert currentQuery == 0;
-			currentQuery = INSERT;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
 	}
 
+	private void preActionCheck() {
+		if (currentQuery != 0) {
+			throw new TarantoolException("Execute or add to batch action before starting next one");
+		}
+	}
+
 	@Override
 	public void delete(int space, int index) {
+		preActionCheck();
+		currentQuery = DELETE;
 		try {
 			writeCode(Util.CODE_DELETE);
 			packer.packMapHeader(3);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			assert currentQuery == 0;
-			currentQuery = DELETE;
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
 		} catch (IOException e) {
@@ -401,8 +407,15 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 	}
 
+	private void preSetCheck() {
+		if (currentQuery == 0) {
+			throw new TarantoolException("Need to call one of update/insert/upsert/delete from setting tuple value");
+		}
+	}
+
 	@Override
 	public void setNull() {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packNil();
@@ -414,6 +427,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setLong(long val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packLong(val);
@@ -424,6 +438,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setBoolean(boolean val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packBoolean(val);
@@ -434,6 +449,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setDouble(double val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packDouble(val);
@@ -445,6 +461,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setFloat(float val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packFloat(val);
@@ -455,6 +472,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setInt(int val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packInt(val);
@@ -466,6 +484,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void setString(String val) {
+		preSetCheck();
 		try {
 			querySize++;
 			queryPacker.packString(val);
@@ -476,13 +495,13 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void update(int space, int index) {
+		preActionCheck();
+		currentQuery = UPDATE_KEY;
 		try {
 			writeCode(Util.CODE_UPDATE);
 			packer.packMapHeader(4);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			assert currentQuery == 0;
-			currentQuery = UPDATE_KEY;
 			packer.packInt(Util.KEY_INDEX);
 			packer.packInt(index);
 		} catch (IOException e) {
@@ -492,13 +511,13 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 	@Override
 	public void upsert(int space) {
+		preActionCheck();
+		currentQuery = UPSERT_TUPLE;
 		try {
 			writeCode(Util.CODE_UPSERT);
 			packer.packMapHeader(3);
 			packer.packInt(Util.KEY_SPACE);
 			packer.packInt(space);
-			assert currentQuery == 0;
-			currentQuery = UPSERT_TUPLE;
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
