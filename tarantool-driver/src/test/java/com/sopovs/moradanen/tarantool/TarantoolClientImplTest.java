@@ -6,8 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.sopovs.moradanen.tarantool.TarantoolClient.Op;
-
 public class TarantoolClientImplTest {
 	@Test
 	public void testConnect() {
