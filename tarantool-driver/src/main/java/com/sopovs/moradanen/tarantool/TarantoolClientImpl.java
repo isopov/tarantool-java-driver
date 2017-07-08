@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -22,6 +23,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 	static final String PRE_ACTION_EXCEPTION = "Execute or add to batch action before starting next one";
 	static final String PRE_SET_EXCEPTION = "Need to call one of update/insert/upsert/delete before setting tuple value";
 
+	private final String version;
 	private final Socket socket;
 	private final MessageUnpacker unpacker;
 	private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
@@ -97,7 +99,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 		try {
 			unpacker = MessagePack.newDefaultUnpacker(socket.getInputStream());
 			out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-			connect(login, password);
+			version = connect(login, password);
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -290,8 +292,19 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 	}
 
-	private void connect(String login, String password) throws IOException {
-		unpacker.readPayload(ByteBuffer.allocate(64));// greeting
+	private String parseGreeting() throws IOException {
+		byte[] bytes = new byte[64];
+		unpacker.readPayload(bytes);
+		String greeting = new String(bytes, StandardCharsets.US_ASCII);
+		String[] parts = greeting.split(" ");
+		if (parts.length < 2 || !"Tarantool".equals(parts[0])) {
+			throw new TarantoolException("Unexpected greeting " + greeting);
+		}
+		return parts[1];
+	}
+
+	private String connect(String login, String password) throws IOException {
+		String version = parseGreeting();
 		final byte[] salt = new byte[44];
 		unpacker.readPayload(salt);
 		unpacker.readPayload(ByteBuffer.allocate(20));// unused
@@ -306,7 +319,6 @@ public class TarantoolClientImpl implements TarantoolClient {
 			packer.packBinaryHeader(20);
 			packer.addPayload(scramble(password, salt));
 			finishQuery();
-			// unpacker.unpackByte();
 			int bodySize = flushAndGetResultSize(false);
 			if (bodySize == 1) {
 				byte bodyKey = unpacker.unpackByte();
@@ -320,6 +332,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 				throw new TarantoolException("Body size " + bodySize + " for auth");
 			}
 		}
+		return version;
 	}
 
 	private static byte[] scramble(String password, byte[] salt) {
@@ -549,6 +562,11 @@ public class TarantoolClientImpl implements TarantoolClient {
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
+	}
+
+	@Override
+	public String getVersion() {
+		return version;
 	}
 
 }

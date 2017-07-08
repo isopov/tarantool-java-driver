@@ -9,7 +9,7 @@ import org.junit.Test;
 public class TarantoolClientImplTest {
 	@Test
 	public void testConnect() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 		}
 	}
 
@@ -19,7 +19,7 @@ public class TarantoolClientImplTest {
 	}
 
 	public static void testAuth(String login, String password) {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.user.drop('foobar',{if_exists=true})").consume();
 			client.evalFully("box.schema.user.create('foobar', {password = 'foobar'})").consume();
 			try (TarantoolClientImpl authClient = new TarantoolClientImpl("localhost", 3301, login, password)) {
@@ -31,14 +31,14 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testPing() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.ping();
 		}
 	}
 
 	@Test
 	public void testSelect() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			selectInternal(client);
 		}
 	}
@@ -53,7 +53,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testSelectByName() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.selectAll("_vspace", 3);
 			Result result = client.execute();
 			assertEquals(3, result.getSize());
@@ -64,7 +64,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testManySelects() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			for (int i = 1; i <= 10; i++) {
 				client.selectAll(Util.SPACE_VSPACE, i);
 				Result result = client.execute();
@@ -78,7 +78,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testSpace() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			assertEquals(Util.SPACE_SCHEMA, client.space("_schema"));
 			assertEquals(Util.SPACE_SPACE, client.space("_space"));
 			assertEquals(Util.SPACE_INDEX, client.space("_index"));
@@ -94,7 +94,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testEval() {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.evalFully("box.schema.space.create('javatest')");
 			client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})");
 			client.evalFully("box.space.javatest:drop()");
@@ -103,7 +103,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testInsert() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
 		}
@@ -111,7 +111,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testDelete() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
 			client.delete("javatest");
@@ -127,7 +127,7 @@ public class TarantoolClientImplTest {
 		}
 	}
 
-	private static void insertInternal(TarantoolClientImpl client) {
+	private static void insertInternal(TarantoolClient client) {
 		createTestSpace(client);
 
 		client.insert("javatest");
@@ -154,14 +154,14 @@ public class TarantoolClientImplTest {
 		assertEquals("Foobar", select.getString(2));
 	}
 
-	private static void createTestSpace(TarantoolClientImpl client) {
+	private static void createTestSpace(TarantoolClient client) {
 		client.evalFully("box.schema.space.create('javatest')").consume();
 		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})").consume();
 	}
 
 	@Test
 	public void testInsertBatch() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
 			int space = client.space("javatest");
@@ -187,7 +187,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testUpdate() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
@@ -204,7 +204,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testUpsert() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
 
@@ -216,7 +216,7 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testUpsertBatch() throws Exception {
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost");
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
 			createTestSpace(client);
 			for (int i = 0; i < 10; i++) {
@@ -255,4 +255,15 @@ public class TarantoolClientImplTest {
 		assertEquals(value, select.getInt(1));
 		assertEquals("Foobar", select.getString(2));
 	}
+
+	@Test
+	public void testGetVersion() {
+		String minor = System.getenv("TARANTOOL_VERSION");
+		minor = minor == null ? "8" : minor;
+		String majorMinor = "1." + minor;
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+			assertTrue(client.getVersion().startsWith(majorMinor));
+		}
+	}
+
 }

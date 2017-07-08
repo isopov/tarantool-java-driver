@@ -14,8 +14,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 	private final TarantoolConfig config;
 	private final Function<TarantoolConfig, TarantoolClient> clientFactory;
 
-	public TarantoolPooledClientSource(TarantoolConfig config,
-			Function<TarantoolConfig, TarantoolClient> clientFactory,
+	public TarantoolPooledClientSource(TarantoolConfig config, Function<TarantoolConfig, TarantoolClient> clientFactory,
 			int size) {
 		this.config = config;
 		this.clientFactory = clientFactory;
@@ -65,7 +64,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 				}
 				iterator.remove();
 			}
-			 pool.notifyAll();
+			pool.notifyAll();
 			if (poolCloseException != null) {
 				throw poolCloseException;
 			}
@@ -288,6 +287,11 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			} catch (TarantoolException e) {
 				throw closeOnException(e);
 			}
+		}
+
+		@Override
+		public String getVersion() {
+			return client.getVersion();
 		}
 	}
 }

@@ -62,8 +62,7 @@ public class TarantoolPooledClientSourceTest {
 
 	@Test
 	public void testGet1Connection() {
-		try (TarantoolClientSource pool = createPool();
-				TarantoolClient client = pool.getClient()) {
+		try (TarantoolClientSource pool = createPool(); TarantoolClient client = pool.getClient()) {
 		}
 	}
 
@@ -214,6 +213,11 @@ public class TarantoolPooledClientSourceTest {
 
 		@Override
 		public void setString(String val) {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
+		public String getVersion() {
 			throw new TarantoolException("Not implemented!");
 		}
 	}

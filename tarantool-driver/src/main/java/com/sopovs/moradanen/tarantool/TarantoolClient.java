@@ -119,6 +119,8 @@ public interface TarantoolClient extends Closeable {
 
 	void setString(String val);
 
+	String getVersion();
+	
 	@Override
 	void close();
 }

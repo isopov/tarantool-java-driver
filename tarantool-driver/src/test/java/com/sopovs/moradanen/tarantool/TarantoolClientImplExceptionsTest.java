@@ -34,7 +34,7 @@ public class TarantoolClientImplExceptionsTest {
 	public void testNoSpace() {
 		thrown.expect(TarantoolException.class);
 		thrown.expectMessage("No such space no_such_space");
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.space("no_such_space");
 		}
 	}
@@ -123,7 +123,7 @@ public class TarantoolClientImplExceptionsTest {
 	private void testException(String message, Consumer<TarantoolClient> setter) {
 		thrown.expect(TarantoolException.class);
 		thrown.expectMessage(message);
-		try (TarantoolClientImpl client = new TarantoolClientImpl("localhost")) {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			setter.accept(client);
 		}
 	}

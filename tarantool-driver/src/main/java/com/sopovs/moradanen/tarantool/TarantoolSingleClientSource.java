@@ -161,5 +161,10 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		public void setLong(long val) {
 			client.setLong(val);
 		}
+
+		@Override
+		public String getVersion() {
+			return client.getVersion();
+		}
 	}
 }
