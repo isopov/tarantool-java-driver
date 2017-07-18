@@ -282,27 +282,24 @@ public class TarantoolClientImplTest {
 			assertEquals(1L, client.executeUpdate());
 		}
 	}
-	
-	
+
 	@Test
 	public void testInsertAndSelect() {
 		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
 			assertEquals(1L, client.executeUpdate());
-			
+
 			client.execute("INSERT INTO table1 values(?,?)");
 			client.setInt(1);
 			client.setString("A");
-			client.executeUpdate();
+			assertEquals(1L, client.executeUpdate());
 
-			//TODO select
-			
-			
+			// TODO select
+
 			client.execute("DROP TABLE table1");
 			assertEquals(1L, client.executeUpdate());
 		}
 	}
-	
 
 }
