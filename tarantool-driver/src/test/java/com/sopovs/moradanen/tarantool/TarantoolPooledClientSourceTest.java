@@ -177,6 +177,16 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
+		public void execute(String sqlQuery) {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
+		public long executeUpdate() {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
 		public void ping() {
 			throw new TarantoolException("Not implemented!");
 		}

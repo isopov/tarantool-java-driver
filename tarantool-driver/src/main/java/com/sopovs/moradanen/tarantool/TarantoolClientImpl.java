@@ -46,6 +46,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 	private static final byte DELETE = 6;
 	private static final byte UPDATE_KEY = 7;
 	private static final byte UPDATE_TUPLE = 8;
+	private static final byte SQL = 9;
 
 	private static int currentQueryToQueryCode(byte currentQuery) {
 		switch (currentQuery) {
@@ -60,6 +61,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 			return Util.KEY_KEY;
 		case UPSERT_OPS:
 			return Util.KEY_UPSERT_OPS;
+		case SQL:
+			return Util.KEY_SQL_BIND;
 		case 0:
 		default:
 			throw new TarantoolException(EXECUTE_ABSENT_EXCEPTION);
@@ -115,6 +118,8 @@ public class TarantoolClientImpl implements TarantoolClient {
 			byte bodyKey = unpacker.unpackByte();
 			if (bodyKey == Util.KEY_DATA) {
 				return last = new Result(unpacker);
+			} else if (bodyKey == Util.KEY_SQL_INFO) {
+				throw new TarantoolException("Use executeUpdate for non-returning sql");
 			} else if (bodyKey == Util.KEY_ERROR) {
 				throw new TarantoolException(unpacker.unpackString());
 			} else {
@@ -132,6 +137,39 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 		finishQueryWithArguments();
 		return getSingleResult();
+	}
+
+	@Override
+	public long executeUpdate() {
+		if (batchSize > 0) {
+			executeBatch();
+		}
+		finishQueryWithArguments();
+		try {
+			int bodySize = flushAndGetResultSize(true);
+			if (1 != bodySize) {
+				throw new TarantoolException("Body size is " + bodySize);
+			}
+
+			byte bodyKey = unpacker.unpackByte();
+			if (bodyKey == Util.KEY_ERROR) {
+				throw new TarantoolException(unpacker.unpackString());
+			}
+			if (bodyKey != Util.KEY_SQL_INFO) {
+				throw new TarantoolException("Expected SQL_INFO(" + Util.KEY_SQL_INFO + "), but got " + bodyKey);
+			}
+			int respBodySize = unpacker.unpackMapHeader();
+			if (1 != respBodySize) {
+				throw new TarantoolException("Non-select body size is " + bodySize);
+			}
+			int sqlInfo = unpacker.unpackInt();
+			if (sqlInfo != Util.KEY_SQL_ROW_COUNT) {
+				throw new TarantoolException("Expected SQL_INFO(" + Util.KEY_SQL_INFO + "), but got " + sqlInfo);
+			}
+			return unpacker.unpackLong();
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
 	}
 
 	private int flushAndGetResultSize(boolean batch) throws IOException {
@@ -562,6 +600,22 @@ public class TarantoolClientImpl implements TarantoolClient {
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
+	}
+
+	@Override
+	public void execute(String sqlQuery) {
+		preActionCheck();
+		currentQuery = SQL;
+
+		try {
+			writeCode(Util.CODE_EXECUTE);
+			packer.packMapHeader(2);
+			packer.packInt(Util.KEY_SQL_TEXT);
+			packer.packString(sqlQuery);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+
 	}
 
 	@Override

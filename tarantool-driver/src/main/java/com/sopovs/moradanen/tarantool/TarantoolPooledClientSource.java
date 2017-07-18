@@ -218,6 +218,26 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
+		public void execute(String sqlQuery) {
+			try {
+				client.execute(sqlQuery);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+		}
+
+		
+		
+		@Override
+		public long executeUpdate() {
+			try {
+				return client.executeUpdate();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+		}
+
+		@Override
 		public void ping() {
 			try {
 				client.ping();

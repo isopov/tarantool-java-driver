@@ -114,7 +114,19 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		@Override
 		public void change(Op op, int field, int arg) {
 			client.change(op, field, arg);
+		}
 
+		@Override
+		public void execute(String sqlQuery) {
+			client.execute(sqlQuery);
+		}
+		
+		
+		
+
+		@Override
+		public long executeUpdate() {
+			return client.executeUpdate();
 		}
 
 		@Override

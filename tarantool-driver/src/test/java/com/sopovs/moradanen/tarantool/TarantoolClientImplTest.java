@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 public class TarantoolClientImplTest {
@@ -258,12 +259,50 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testGetVersion() {
-		String minor = System.getenv("TARANTOOL_VERSION");
-		minor = minor == null ? "8" : minor;
-		String majorMinor = "1." + minor;
+		String majorMinor = getEnvTarantoolVersion();
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			assertTrue(client.getVersion().startsWith(majorMinor));
 		}
 	}
+
+	private static String getEnvTarantoolVersion() {
+		String minor = System.getenv("TARANTOOL_VERSION");
+		minor = minor == null ? "8" : minor;
+		String majorMinor = "1." + minor;
+		return majorMinor;
+	}
+
+	@Test
+	public void testExecuteCreateTable() {
+		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
+			assertEquals(1L, client.executeUpdate());
+			client.execute("DROP TABLE table1");
+			assertEquals(1L, client.executeUpdate());
+		}
+	}
+	
+	
+	@Test
+	public void testInsertAndSelect() {
+		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
+			assertEquals(1L, client.executeUpdate());
+			
+			client.execute("INSERT INTO table1 values(?,?)");
+			client.setInt(1);
+			client.setString("A");
+			client.executeUpdate();
+
+			//TODO select
+			
+			
+			client.execute("DROP TABLE table1");
+			assertEquals(1L, client.executeUpdate());
+		}
+	}
+	
 
 }
