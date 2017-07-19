@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.function.Consumer;
+
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -274,32 +276,34 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testExecuteCreateTable() {
-		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
-		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
-			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
-			assertEquals(1L, client.executeUpdate());
-			client.execute("DROP TABLE table1");
-			assertEquals(1L, client.executeUpdate());
-		}
+		sqlTest(ignored -> {});
 	}
 
-	@Test
-	public void testInsertAndSelect() {
+	private void sqlTest(Consumer<TarantoolClient> work) {
 		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
-			assertEquals(1L, client.executeUpdate());
-
+			//TODO assert https://github.com/tarantool/tarantool/issues/2617
+			client.executeUpdate();
+			
+			work.accept(client);
+			
+			client.execute("DROP TABLE table1");
+			//TODO assert https://github.com/tarantool/tarantool/issues/2617
+			client.executeUpdate();
+		}
+	}
+	
+	@Test
+	public void testInsertAndSelect() {
+		sqlTest(client -> {
 			client.execute("INSERT INTO table1 values(?,?)");
 			client.setInt(1);
 			client.setString("A");
 			assertEquals(1L, client.executeUpdate());
 
 			// TODO select
-
-			client.execute("DROP TABLE table1");
-			assertEquals(1L, client.executeUpdate());
-		}
+			
+		});
 	}
-
 }
