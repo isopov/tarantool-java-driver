@@ -117,7 +117,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
 			byte bodyKey = unpacker.unpackByte();
 			if (bodyKey == Util.KEY_DATA) {
-				return last = new Result(unpacker);
+				return last = new ArrayResult(unpacker);
 			} else if (bodyKey == Util.KEY_SQL_INFO) {
 				throw new TarantoolException("Use executeUpdate for non-returning sql");
 			} else if (bodyKey == Util.KEY_ERROR) {
