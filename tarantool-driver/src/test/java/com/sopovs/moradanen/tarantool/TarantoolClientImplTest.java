@@ -276,24 +276,25 @@ public class TarantoolClientImplTest {
 
 	@Test
 	public void testExecuteCreateTable() {
-		sqlTest(ignored -> {});
+		sqlTest(ignored -> {
+		});
 	}
 
 	private void sqlTest(Consumer<TarantoolClient> work) {
 		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
-			//TODO assert https://github.com/tarantool/tarantool/issues/2617
+			// TODO assert https://github.com/tarantool/tarantool/issues/2617
 			client.executeUpdate();
-			
+
 			work.accept(client);
-			
+
 			client.execute("DROP TABLE table1");
-			//TODO assert https://github.com/tarantool/tarantool/issues/2617
+			// TODO assert https://github.com/tarantool/tarantool/issues/2617
 			client.executeUpdate();
 		}
 	}
-	
+
 	@Test
 	public void testInsertAndSelect() {
 		sqlTest(client -> {
@@ -302,8 +303,19 @@ public class TarantoolClientImplTest {
 			client.setString("A");
 			assertEquals(1L, client.executeUpdate());
 
-			// TODO select
-			
+			client.execute("select * from table1");
+			Result result = client.execute();
+			assertTrue(result instanceof MapResult);
+			MapResult mapResult = (MapResult) result;
+			assertEquals(2, mapResult.getFieldNames().size());
+			assertEquals(Integer.valueOf(0), mapResult.getFieldNames().get("column1"));
+			assertEquals(Integer.valueOf(1), mapResult.getFieldNames().get("column2"));
+			assertTrue(mapResult.hasNext());
+			assertTrue(mapResult.next());
+
+			assertEquals(1, mapResult.getInt("column1"));
+			assertEquals("A", mapResult.getString("column2"));
+			assertFalse(mapResult.hasNext());
 		});
 	}
 }

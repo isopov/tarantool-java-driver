@@ -111,19 +111,19 @@ public class TarantoolClientImpl implements TarantoolClient {
 	private Result getSingleResult() {
 		try {
 			int bodySize = flushAndGetResultSize(true);
-			if (1 != bodySize) {
-				throw new TarantoolException("Body size is " + bodySize);
-			}
-
-			byte bodyKey = unpacker.unpackByte();
-			if (bodyKey == Util.KEY_DATA) {
-				return last = new ArrayResult(unpacker);
-			} else if (bodyKey == Util.KEY_SQL_INFO) {
-				throw new TarantoolException("Use executeUpdate for non-returning sql");
-			} else if (bodyKey == Util.KEY_ERROR) {
-				throw new TarantoolException(unpacker.unpackString());
+			if (bodySize == 1) {
+				byte bodyKey = unpacker.unpackByte();
+				if (bodyKey == Util.KEY_DATA) {
+					return last = new ArrayResult(unpacker);
+				} else if (bodyKey == Util.KEY_ERROR) {
+					throw new TarantoolException(unpacker.unpackString());
+				} else {
+					throw new TarantoolException("Unknown body Key " + bodyKey);
+				}
+			} else if (bodySize == 2) {
+				return new MapResult(unpacker);
 			} else {
-				throw new TarantoolException("Unknown body Key " + bodyKey);
+				throw new TarantoolException("Body size is " + bodySize);
 			}
 		} catch (IOException e) {
 			throw new TarantoolException(e);

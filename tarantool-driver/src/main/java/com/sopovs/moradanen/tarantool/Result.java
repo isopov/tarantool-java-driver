@@ -13,7 +13,7 @@ public interface Result {
 
 	public double getDouble(int index) ;
 
-	public double getFloat(int index);
+	public float getFloat(int index);
 
 	public long getLong(int index);
 

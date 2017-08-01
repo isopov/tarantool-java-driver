@@ -42,7 +42,7 @@ public class ArrayResult extends AbstractResult<ImmutableArrayValue> {
 	}
 
 	@Override
-	public double getFloat(int index) {
+	public float getFloat(int index) {
 		return current.get(index).asFloatValue().toFloat();
 	}
 
