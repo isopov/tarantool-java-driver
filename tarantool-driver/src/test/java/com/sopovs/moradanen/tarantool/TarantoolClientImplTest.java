@@ -3,10 +3,10 @@ package com.sopovs.moradanen.tarantool;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.function.Consumer;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 public class TarantoolClientImplTest {
@@ -281,7 +281,7 @@ public class TarantoolClientImplTest {
 	}
 
 	private void sqlTest(Consumer<TarantoolClient> work) {
-		Assume.assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
+		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.execute("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
 			// TODO assert https://github.com/tarantool/tarantool/issues/2617
