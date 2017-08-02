@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -37,11 +38,11 @@ public class TarantoolConnectionTest {
 				Statement st = con.createStatement()) {
 			st.executeUpdate("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
 
-			// TODO PreparedStatement
-			client.execute("INSERT INTO table1 values(?,?)");
-			client.setInt(1);
-			client.setString("Foobar");
-			assertEquals(1L, client.executeUpdate());
+			try (PreparedStatement pst = con.prepareStatement("INSERT INTO table1 values(?,?)")) {
+				pst.setString(2, "Foobar");
+				pst.setInt(1, 1);
+				assertEquals(1, pst.executeUpdate());
+			}
 
 			ResultSet res = st.executeQuery("select * from table1");
 			assertTrue(res.isWrapperFor(MapResult.class));

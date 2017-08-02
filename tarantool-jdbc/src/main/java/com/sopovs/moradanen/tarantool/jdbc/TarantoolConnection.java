@@ -50,8 +50,7 @@ public class TarantoolConnection implements Connection {
 
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return new TarantoolPreparedStatement(this, sql);
 	}
 
 	@Override
