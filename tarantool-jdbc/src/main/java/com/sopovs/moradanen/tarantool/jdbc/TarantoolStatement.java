@@ -1,6 +1,5 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -21,7 +20,7 @@ public class TarantoolStatement implements Statement {
 	}
 
 	@Override
-	public ResultSet executeQuery(String sql) throws SQLException {
+	public TarantoolResultSet executeQuery(String sql) throws SQLException {
 		client.execute(sql);
 		return new TarantoolResultSet(this, (MapResult) client.execute());
 	}
@@ -41,7 +40,7 @@ public class TarantoolStatement implements Statement {
 	}
 
 	@Override
-	public Connection getConnection() throws SQLException {
+	public TarantoolConnection getConnection() throws SQLException {
 		return connection;
 	}
 

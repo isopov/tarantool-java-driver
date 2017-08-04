@@ -46,12 +46,12 @@ public class TarantoolConnection implements Connection {
 	}
 
 	@Override
-	public Statement createStatement() throws SQLException {
+	public TarantoolStatement createStatement() throws SQLException {
 		return new TarantoolStatement(this);
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String sql) throws SQLException {
+	public TarantoolPreparedStatement prepareStatement(String sql) throws SQLException {
 		return new TarantoolPreparedStatement(this, sql);
 	}
 
@@ -70,7 +70,6 @@ public class TarantoolConnection implements Connection {
 		if (autoCommit) {
 			throw new SQLFeatureNotSupportedException();
 		}
-
 	}
 
 	@Override

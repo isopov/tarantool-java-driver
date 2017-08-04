@@ -11,7 +11,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.sopovs.moradanen.tarantool.MapResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
@@ -59,4 +61,30 @@ public class TarantoolConnectionTest {
 		}
 	}
 
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
+
+	@Test
+	public void testMissingFirstParameterExecute() throws SQLException {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				TarantoolConnection con = new TarantoolConnection(client);
+				TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
+			pst.setString(2, "foobar");
+			thrown.expect(SQLException.class);
+			thrown.expectMessage("Parameter 1 is not set");
+			pst.executeQuery();
+		}
+	}
+
+	@Test
+	public void testMissingFirstParameterUpdate() throws SQLException {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				TarantoolConnection con = new TarantoolConnection(client);
+				TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
+			pst.setString(2, "foobar");
+			thrown.expect(SQLException.class);
+			thrown.expectMessage("Parameter 1 is not set");
+			pst.executeUpdate();
+		}
+	}
 }

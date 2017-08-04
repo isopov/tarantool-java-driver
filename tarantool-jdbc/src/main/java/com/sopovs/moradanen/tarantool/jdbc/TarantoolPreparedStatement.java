@@ -12,7 +12,6 @@ import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.Ref;
-import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
@@ -23,7 +22,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Objects;
 
 import com.sopovs.moradanen.tarantool.MapResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
@@ -39,16 +37,28 @@ public class TarantoolPreparedStatement extends TarantoolStatement implements Pr
 	}
 
 	@Override
-	public ResultSet executeQuery() throws SQLException {
+	public TarantoolResultSet executeQuery() throws SQLException {
+		executeAndSetParameters();
 		return new TarantoolResultSet(this, (MapResult) client.execute());
+	}
+
+	private void executeAndSetParameters() throws SQLException {
+		client.execute(sql);
+		for (int i = 0; i < parameters.size(); i++) {
+			requireParameter(parameters.get(i), i).set(client);
+		}
+	}
+
+	private static Parameter requireParameter(Parameter par, int index) throws SQLException {
+		if (par == null) {
+			throw new SQLException("Parameter " + (index + 1) + " is not set");
+		}
+		return par;
 	}
 
 	@Override
 	public int executeUpdate() throws SQLException {
-		client.execute(sql);
-		for (Parameter pr : parameters) {
-			Objects.requireNonNull(pr).set(client);
-		}
+		executeAndSetParameters();
 		return (int) client.executeUpdate();
 	}
 
