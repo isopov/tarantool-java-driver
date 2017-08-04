@@ -17,6 +17,15 @@ public class TarantoolClientImplExceptionsTest {
 	public ExpectedException thrown = ExpectedException.none();
 
 	@Test
+	public void testClosedPing() {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+			client.close();
+			thrown.expect(TarantoolException.class);
+			client.ping();
+		}
+	}
+
+	@Test
 	public void testWrongPassword() {
 		thrown.expect(TarantoolAuthException.class);
 		thrown.expectMessage("Incorrect password supplied for user 'foobar'");
@@ -142,4 +151,5 @@ public class TarantoolClientImplExceptionsTest {
 	private void testPreActionCheck(Consumer<TarantoolClient> action) {
 		testExceptionDoubleAccept(PRE_ACTION_EXCEPTION, action);
 	}
+
 }

@@ -318,4 +318,14 @@ public class TarantoolClientImplTest {
 			assertFalse(mapResult.hasNext());
 		});
 	}
+
+	@Test
+	public void testIsClosed() {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+			assertFalse(client.isClosed());
+			client.ping();
+			client.close();
+			assertTrue(client.isClosed());
+		}
+	}
 }
