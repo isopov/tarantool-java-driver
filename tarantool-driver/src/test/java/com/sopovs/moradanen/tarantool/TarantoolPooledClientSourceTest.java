@@ -112,6 +112,11 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
+		public boolean isClosed() {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
 		public void close() {
 			// dummy
 		}

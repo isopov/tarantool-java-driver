@@ -396,6 +396,11 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	@Override
+	public boolean isClosed() {
+		return socket.isClosed();
+	}
+
+	@Override
 	public void close() {
 		try {
 			socket.close();

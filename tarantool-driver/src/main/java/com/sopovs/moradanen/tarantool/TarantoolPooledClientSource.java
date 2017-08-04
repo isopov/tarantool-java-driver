@@ -77,6 +77,11 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		private boolean closed = false;
 
 		@Override
+		public boolean isClosed() {
+			return closed;
+		}
+
+		@Override
 		public void close() {
 			synchronized (pool) {
 				if (closed) {
@@ -226,8 +231,6 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			}
 		}
 
-		
-		
 		@Override
 		public long executeUpdate() {
 			try {

@@ -120,11 +120,13 @@ public interface TarantoolClient extends Closeable {
 	void setString(String val);
 
 	String getVersion();
-	
+
 	void execute(String sqlQuery);
-	
+
 	long executeUpdate();
-	
+
+	boolean isClosed();
+
 	@Override
 	void close();
 }

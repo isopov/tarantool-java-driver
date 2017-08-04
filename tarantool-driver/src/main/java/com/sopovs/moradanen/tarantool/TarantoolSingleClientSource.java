@@ -41,6 +41,12 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		private final TarantoolClient client;
 
 		@Override
+		public boolean isClosed() {
+			// TODO maybe have separate proxies and not the shared one?
+			return closed && !given;
+		}
+
+		@Override
 		public void close() {
 			synchronized (lock) {
 				given = false;
@@ -120,9 +126,6 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		public void execute(String sqlQuery) {
 			client.execute(sqlQuery);
 		}
-		
-		
-		
 
 		@Override
 		public long executeUpdate() {
