@@ -6,6 +6,10 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 	private final Object lock = new Object();
 	private final TarantoolClientProxy clientProxy;
 
+	public TarantoolSingleClientSource(TarantoolClient client) {
+		clientProxy = new TarantoolClientProxy(client);
+	}
+	
 	public TarantoolSingleClientSource(String host, int port) {
 		clientProxy = new TarantoolClientProxy(new TarantoolClientImpl(host, port));
 	}
@@ -21,7 +25,7 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 				try {
 					lock.wait();
 				} catch (InterruptedException e) {
-					throw new TarantoolException("Interrupted while waiting for a free connection");
+					throw new TarantoolException("Interrupted while waiting for a free connection", e);
 				}
 			}
 		}

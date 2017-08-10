@@ -3,6 +3,12 @@ package com.sopovs.moradanen.tarantool;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -27,29 +33,34 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 import org.tarantool.TarantoolConnection;
 
-//Benchmark                                                         (size)  Mode  Cnt         Score          Error   Units
-//SelectBenchmark.client                                                 1  avgt    5        44.097 ±       13.222   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                             1  avgt    5       696.045 ±        1.530    B/op
-//SelectBenchmark.client                                               100  avgt    5        89.070 ±       34.241   us/op
-//SelectBenchmark.client:·gc.alloc.rate                                100  avgt    5       298.388 ±      108.160  MB/sec
-//SelectBenchmark.client:·gc.alloc.rate.norm                           100  avgt    5     41526.581 ±        5.355    B/op
-//SelectBenchmark.client                                             10000  avgt    5      3520.862 ±      275.662   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                         10000  avgt    5   4359367.929 ±        9.720    B/op
+//Benchmark                                            (size)        Score          Error   Units
+//SelectBenchmark.client                                    1       60.051 ±       19.458   us/op
+//SelectBenchmark.client:·gc.alloc.rate.norm                1      747.871 ±       64.017    B/op
+//SelectBenchmark.client                                  100      109.769 ±       32.617   us/op
+//SelectBenchmark.client:·gc.alloc.rate.norm              100    46345.007 ±       37.999    B/op
+//SelectBenchmark.client                                10000     4528.870 ±      927.183   us/op
+//SelectBenchmark.client:·gc.alloc.rate.norm            10000  4838856.987 ±       68.005    B/op
 //
-//SelectBenchmark.referenceClient                                        1  avgt    5        80.325 ±       17.750   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                    1  avgt    5     10209.649 ±     8871.924    B/op
-//SelectBenchmark.referenceClient                                      100  avgt    5       138.650 ±       30.248   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                  100  avgt    5     98612.892 ±   199166.333    B/op
-//SelectBenchmark.referenceClient                                    10000  avgt    5      4769.988 ±      270.897   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm                10000  avgt    5   9190430.678 ± 19769972.934    B/op
+//SelectBenchmark.jdbc                                      1      136.829 ±       28.282   us/op
+//SelectBenchmark.jdbc:·gc.alloc.rate.norm                  1     1492.178 ±        1.795    B/op
+//SelectBenchmark.jdbc                                    100      269.950 ±       54.267   us/op
+//SelectBenchmark.jdbc:·gc.alloc.rate.norm                100    48052.161 ±        3.890    B/op
+//SelectBenchmark.jdbc                                  10000    13743.088 ±     3963.558   us/op
+//SelectBenchmark.jdbc:·gc.alloc.rate.norm              10000  4488546.439 ±      231.620    B/op
 //
-//SelectBenchmark.connection                                             1  avgt    5        65.622 ±        6.248   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                         1  avgt    5     11760.048 ±        0.115    B/op
-//SelectBenchmark.connection                                           100  avgt    5       339.908 ±       10.309   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                       100  avgt    5    129392.217 ±        0.552    B/op
-//SelectBenchmark.connection                                         10000  avgt    5     35564.391 ±     2027.553   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm                     10000  avgt    5  12677737.072 ±      134.566    B/op
-
+//SelectBenchmark.referenceClient                           1       93.135 ±       27.792   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm       1    10209.644 ±     8871.899    B/op
+//SelectBenchmark.referenceClient                         100      165.087 ±       41.909   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm     100    98612.903 ±   199166.349    B/op
+//SelectBenchmark.referenceClient                       10000     5261.139 ±     1107.887   us/op
+//SelectBenchmark.referenceClient:·gc.alloc.rate.norm   10000  9190418.672 ± 19769946.733    B/op
+//
+//SelectBenchmark.connection                                1       85.325 ±       11.463   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm            1    11760.055 ±        0.148    B/op
+//SelectBenchmark.connection                              100      358.742 ±       36.729   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm          100   129392.232 ±        0.626    B/op
+//SelectBenchmark.connection                            10000    36867.034 ±     3317.009   us/op
+//SelectBenchmark.connection:·gc.alloc.rate.norm        10000  2677735.898 ±      134.961    B/op
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
 @State(Scope.Benchmark)
@@ -62,6 +73,7 @@ public class SelectBenchmark {
 	private org.tarantool.TarantoolClient referenceClient;
 	private TarantoolClientSource clientSource;
 	private TarantoolTemplate template;
+	private Connection jdbcConnection;
 	private int space;
 
 	@Param({ "1", "100", "10000" })
@@ -73,25 +85,41 @@ public class SelectBenchmark {
 		referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
 				new TarantoolClientConfig());
 		connection = new TarantoolConnection(null, null, new Socket("localhost", 3301));
+		TarantoolClient tarantoolClient = new TarantoolClientImpl("localhost", 3301);
+		clientSource = new TarantoolSingleClientSource(tarantoolClient);
 
-		clientSource = new TarantoolSingleClientSource("localhost", 3301);
 		template = new TarantoolTemplate(clientSource);
+		jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(tarantoolClient);
+		setupData();
 
-		try (TarantoolClient client = clientSource.getClient()) {
-			client.evalFully("box.schema.space.create('javabenchmark')").consume();
-			client.evalFully(
-					"box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
-					.consume();
-			space = client.space("javabenchmark");
+	}
+
+	private void setupData() throws SQLException {
+		try (Statement st = jdbcConnection.createStatement();
+				PreparedStatement pst = jdbcConnection.prepareStatement("insert into jdbcbenchmark values(?,?)")) {
+			st.executeUpdate("create table jdbcbenchmark(c1 INTEGER PRIMARY KEY, c2 VARCHAR(100))");
 			for (int i = 0; i < size; i++) {
-				client.insert(space);
-				client.setInt(i);
-				client.setString("FooBar" + i);
-				client.addBatch();
+				pst.setInt(1, i);
+				pst.setString(2, "FooBar" + i);
+				// TODO Batch
+				pst.executeUpdate();
 			}
-			client.executeBatch();
 		}
+		try (TarantoolClient client = clientSource.getClient()) {
+			space = client.space("jdbcbenchmark");
+		}
+	}
 
+	@Benchmark
+	public List<Foo> jdbc() throws SQLException {
+		List<Foo> result = new ArrayList<>();
+		try (PreparedStatement pst = jdbcConnection.prepareStatement("select * from jdbcbenchmark");
+				ResultSet res = pst.executeQuery()) {
+			while (res.next()) {
+				result.add(new Foo(res.getInt(1), res.getString(2)));
+			}
+		}
+		return result;
 	}
 
 	@Benchmark
@@ -129,10 +157,11 @@ public class SelectBenchmark {
 	}
 
 	@TearDown
-	public void tearDown() {
-		try (TarantoolClient client = clientSource.getClient()) {
-			client.evalFully("box.space.javabenchmark:drop()").consume();
+	public void tearDown() throws SQLException {
+		try (Statement st = jdbcConnection.createStatement()) {
+			st.executeUpdate("drop table jdbcbenchmark");
 		}
+
 		connection.close();
 		referenceClient.close();
 		clientSource.close();
