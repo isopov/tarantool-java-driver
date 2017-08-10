@@ -203,6 +203,32 @@ public class TarantoolConnectionTest {
 		});
 	}
 
+	
+	@Test
+	public void testBatch() throws SQLException{
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				TarantoolConnection con = new TarantoolConnection(client);
+				TarantoolStatement st = con.createStatement()) {
+			st.executeUpdate("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
+
+			try (TarantoolPreparedStatement pst = con.prepareStatement("INSERT INTO table1 values(?,?)")) {
+				for (int i = 0; i < 10; i++) {
+					pst.setInt(1, i);
+					pst.setString(2, "FooBar" + i);
+					pst.addBatch();
+				}
+				pst.executeBatch();
+			}
+
+			TarantoolResultSet res = st.executeQuery("select count(*) from table1");
+			assertTrue(res.next());
+			assertEquals(10, res.getInt(1));
+
+			assertFalse(res.next());
+			st.executeUpdate("DROP TABLE table1");
+		}
+	}
+	
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
 

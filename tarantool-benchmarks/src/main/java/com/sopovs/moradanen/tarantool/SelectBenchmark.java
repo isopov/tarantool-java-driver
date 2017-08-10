@@ -101,9 +101,9 @@ public class SelectBenchmark {
 			for (int i = 0; i < size; i++) {
 				pst.setInt(1, i);
 				pst.setString(2, "FooBar" + i);
-				// TODO Batch
-				pst.executeUpdate();
+				pst.addBatch();
 			}
+			pst.executeBatch();
 		}
 		try (TarantoolClient client = clientSource.getClient()) {
 			space = client.space("jdbcbenchmark");

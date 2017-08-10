@@ -132,6 +132,11 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
+		public int[] executeBatchUpdate() {
+			throw new TarantoolException("Not implemented!");
+		}
+		
+		@Override
 		public void executeBatch() {
 			throw new TarantoolException("Not implemented!");
 		}
@@ -187,7 +192,7 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
-		public long executeUpdate() {
+		public int executeUpdate() {
 			throw new TarantoolException("Not implemented!");
 		}
 

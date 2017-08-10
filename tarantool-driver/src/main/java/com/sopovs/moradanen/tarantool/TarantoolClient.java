@@ -123,10 +123,12 @@ public interface TarantoolClient extends Closeable {
 
 	void execute(String sqlQuery);
 
-	long executeUpdate();
-
 	boolean isClosed();
 
 	@Override
 	void close();
+
+	int executeUpdate();
+	
+	int[] executeBatchUpdate();
 }

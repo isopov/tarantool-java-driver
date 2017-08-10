@@ -198,7 +198,8 @@ public class TarantoolPreparedStatement extends TarantoolStatement implements Pr
 
 	@Override
 	public void addBatch() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		executeAndSetParameters();
+		client.addBatch();
 	}
 
 	@Override

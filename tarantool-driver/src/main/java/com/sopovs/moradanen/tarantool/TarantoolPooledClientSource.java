@@ -133,6 +133,15 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
+		public int[] executeBatchUpdate() {
+			try {
+				return client.executeBatchUpdate();
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+		}
+
+		@Override
 		public void executeBatch() {
 			try {
 				client.executeBatch();
@@ -232,7 +241,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
-		public long executeUpdate() {
+		public int executeUpdate() {
 			try {
 				return client.executeUpdate();
 			} catch (TarantoolException e) {

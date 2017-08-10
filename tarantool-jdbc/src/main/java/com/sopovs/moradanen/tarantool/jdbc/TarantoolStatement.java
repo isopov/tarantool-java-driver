@@ -179,7 +179,7 @@ public class TarantoolStatement implements Statement {
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return client.executeBatchUpdate();
 	}
 
 	@Override

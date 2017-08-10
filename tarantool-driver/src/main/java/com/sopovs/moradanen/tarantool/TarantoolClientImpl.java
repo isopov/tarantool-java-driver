@@ -140,11 +140,22 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	@Override
-	public long executeUpdate() {
-		if (batchSize > 0) {
-			executeBatch();
+	public int[] executeBatchUpdate() {
+		int[] result = new int[batchSize];
+		for (int i = 0; i < batchSize; i++) {
+			result[i] = getUpdateResult();
 		}
+		batchSize = 0;
+		return result;
+	}
+
+	@Override
+	public int executeUpdate() {
 		finishQueryWithArguments();
+		return getUpdateResult();
+	}
+
+	private int getUpdateResult() {
 		try {
 			int bodySize = flushAndGetResultSize(true);
 			if (1 != bodySize) {
@@ -166,7 +177,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 			if (sqlInfo != Util.KEY_SQL_ROW_COUNT) {
 				throw new TarantoolException("Expected SQL_INFO(" + Util.KEY_SQL_INFO + "), but got " + sqlInfo);
 			}
-			return unpacker.unpackLong();
+			return unpacker.unpackInt();
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}

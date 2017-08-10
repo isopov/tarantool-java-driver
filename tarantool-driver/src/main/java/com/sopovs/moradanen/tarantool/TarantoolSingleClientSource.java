@@ -9,7 +9,7 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 	public TarantoolSingleClientSource(TarantoolClient client) {
 		clientProxy = new TarantoolClientProxy(client);
 	}
-	
+
 	public TarantoolSingleClientSource(String host, int port) {
 		clientProxy = new TarantoolClientProxy(new TarantoolClientImpl(host, port));
 	}
@@ -74,6 +74,11 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		}
 
 		@Override
+		public int[] executeBatchUpdate() {
+			return client.executeBatchUpdate();
+		}
+
+		@Override
 		public void executeBatch() {
 			client.executeBatch();
 		}
@@ -132,7 +137,7 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		}
 
 		@Override
-		public long executeUpdate() {
+		public int executeUpdate() {
 			return client.executeUpdate();
 		}
 
