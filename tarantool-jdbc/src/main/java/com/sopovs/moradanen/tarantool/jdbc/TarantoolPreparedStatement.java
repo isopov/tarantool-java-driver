@@ -123,7 +123,11 @@ public class TarantoolPreparedStatement extends TarantoolStatement implements Pr
 	@Override
 	public void setString(int parameterIndex, String x) throws SQLException {
 		ensureParametersSize(parameterIndex - 1);
-		parameters.set(parameterIndex - 1, client -> client.setString(x));
+		if (x == null) {
+			parameters.set(parameterIndex - 1, TarantoolClient::setNull);
+		} else {
+			parameters.set(parameterIndex - 1, client -> client.setString(x));
+		}
 	}
 
 	@Override

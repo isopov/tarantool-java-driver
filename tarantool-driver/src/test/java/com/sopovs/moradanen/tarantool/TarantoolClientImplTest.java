@@ -313,8 +313,8 @@ public class TarantoolClientImplTest {
 			assertTrue(mapResult.hasNext());
 			assertTrue(mapResult.next());
 
-			assertEquals(1, mapResult.getInt("column1"));
-			assertEquals("A", mapResult.getString("column2"));
+			assertEquals(1, mapResult.getInt(mapResult.getIndex("column1")));
+			assertEquals("A", mapResult.getString(mapResult.getIndex("column2")));
 			assertFalse(mapResult.hasNext());
 		});
 	}

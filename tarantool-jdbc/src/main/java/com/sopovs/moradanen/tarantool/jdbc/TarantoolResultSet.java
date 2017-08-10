@@ -28,6 +28,7 @@ import com.sopovs.moradanen.tarantool.TarantoolException;
 public class TarantoolResultSet implements ResultSet {
 	private final TarantoolStatement statement;
 	private final MapResult result;
+	private boolean wasNull = false;
 
 	public TarantoolResultSet(TarantoolStatement statement, MapResult result) {
 		this.statement = statement;
@@ -59,46 +60,85 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public boolean wasNull() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return wasNull;
 	}
 
 	@Override
 	public String getString(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
 		return result.getString(columnIndex - 1);
 	}
 
 	@Override
 	public boolean getBoolean(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return false;
+		}
+		wasNull = false;
 		return result.getBoolean(columnIndex - 1);
 	}
 
 	@Override
 	public byte getByte(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return (byte) result.getInt(columnIndex - 1);
 	}
 
 	@Override
 	public short getShort(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return (short) result.getInt(columnIndex - 1);
 	}
 
 	@Override
 	public int getInt(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return result.getInt(columnIndex - 1);
 	}
 
 	@Override
 	public long getLong(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return result.getLong(columnIndex - 1);
 	}
 
 	@Override
 	public float getFloat(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return result.getFloat(columnIndex - 1);
 	}
 
 	@Override
 	public double getDouble(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return 0;
+		}
+		wasNull = false;
 		return result.getDouble(columnIndex - 1);
 	}
 
@@ -145,7 +185,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public String getString(String columnLabel) throws SQLException {
 		try {
-			return result.getString(columnLabel);
+			return getString(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -154,7 +194,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public boolean getBoolean(String columnLabel) throws SQLException {
 		try {
-			return result.getBoolean(columnLabel);
+			return getBoolean(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -163,7 +203,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public byte getByte(String columnLabel) throws SQLException {
 		try {
-			return (byte) result.getInt(columnLabel);
+			return getByte(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -172,7 +212,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public short getShort(String columnLabel) throws SQLException {
 		try {
-			return (short) result.getInt(columnLabel);
+			return getShort(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -181,7 +221,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public int getInt(String columnLabel) throws SQLException {
 		try {
-			return result.getInt(columnLabel);
+			return getInt(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -190,7 +230,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public long getLong(String columnLabel) throws SQLException {
 		try {
-			return (byte) result.getLong(columnLabel);
+			return getLong(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -199,7 +239,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public float getFloat(String columnLabel) throws SQLException {
 		try {
-			return (byte) result.getFloat(columnLabel);
+			return getFloat(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -208,7 +248,7 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public double getDouble(String columnLabel) throws SQLException {
 		try {
-			return (byte) result.getDouble(columnLabel);
+			return getDouble(result.getIndex(columnLabel) + 1);
 		} catch (TarantoolException e) {
 			throw new SQLException(e);
 		}
@@ -277,25 +317,33 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Object getObject(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
 		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public Object getObject(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getObject(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
 	public int findColumn(String columnLabel) throws SQLException {
 		Integer index = result.getFieldNames().get(columnLabel);
 		if (index != null) {
-			return index - 1;
+			return index + 1;
 		}
 		throw new SQLException(columnLabel + " column is absent");
 	}
 
 	@Override
 	public Reader getCharacterStream(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
 		throw new SQLFeatureNotSupportedException();
 	}
 
@@ -306,6 +354,10 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
 		throw new SQLFeatureNotSupportedException();
 	}
 
@@ -656,21 +708,41 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Ref getRef(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
 		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public Blob getBlob(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
 		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public Clob getClob(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
 		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public Array getArray(int columnIndex) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
 		throw new SQLFeatureNotSupportedException();
 	}
 
@@ -681,22 +753,22 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Ref getRef(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getRef(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
 	public Blob getBlob(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getBlob(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
 	public Clob getClob(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getClob(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
 	public Array getArray(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getArray(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override

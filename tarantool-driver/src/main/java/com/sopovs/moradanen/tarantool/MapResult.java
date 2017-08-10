@@ -93,39 +93,11 @@ public class MapResult extends AbstractResult<ImmutableArrayValue> {
 		return current.size();
 	}
 
-	public boolean isNull(String name) {
-		return isNull(getIndex(name));
-	}
-
-	public boolean getBoolean(String name) {
-		return getBoolean(getIndex(name));
-	}
-
-	public double getDouble(String name) {
-		return getDouble(getIndex(name));
-	}
-
-	public float getFloat(String name) {
-		return getFloat(getIndex(name));
-	}
-
-	public long getLong(String name) {
-		return getLong(getIndex(name));
-	}
-
-	public int getInt(String name) {
-		return getInt(getIndex(name));
-	}
-
 	public Map<String, Integer> getFieldNames() {
 		return fieldNamesView;
 	}
 
-	public String getString(String name) {
-		return getString(getIndex(name));
-	}
-
-	private int getIndex(String name) {
+	public int getIndex(String name) {
 		Integer index = fieldNames.get(name);
 		if (index == null) {
 			throw new TarantoolException("No field " + name);
