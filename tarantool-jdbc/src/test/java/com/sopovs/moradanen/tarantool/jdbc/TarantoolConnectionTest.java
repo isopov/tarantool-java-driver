@@ -26,7 +26,7 @@ public class TarantoolConnectionTest {
 		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 	}
 
-	private static String getEnvTarantoolVersion() {
+	public static String getEnvTarantoolVersion() {
 		String minor = System.getenv("TARANTOOL_VERSION");
 		minor = minor == null ? "8" : minor;
 		String majorMinor = "1." + minor;
