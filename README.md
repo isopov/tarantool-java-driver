@@ -1,5 +1,18 @@
 [![Build Status](https://travis-ci.org/isopov/tarantool-java-driver.svg?branch=master)](https://travis-ci.org/isopov/tarantool-java-driver)
 
-This is an experiment.
+This connector is not used anywhere in production alternative to official Tarantool java connector that can be found at https://github.com/tarantool/tarantool-java
 
-Official Tarantool java driver is at https://github.com/tarantool/tarantool-java
+Pros (why this connector is better):
+* It has tests (oficial driver has none and do not want any https://github.com/tarantool/tarantool-java/pull/25 )
+* Tests are run regularly (on every push) on 3 Tarantool versions - 1.6, 1.7, 1.8
+* It uses https://github.com/msgpack/msgpack-java instead of custom Msgpack implementation. This leads to at least some level of confidence, and in more memory-efficient msgpack processing (https://github.com/isopov/tarantool-java-driver/blob/master/tarantool-benchmarks/src/main/java/com/sopovs/moradanen/tarantool/SelectBenchmark.java)
+* API is more strict - not need for casts
+
+Cons (why oficial connector is better)
+* It is used somewhere
+* It uses custom implementation of Msgpack (It seems that it can be potentially 
+* It has working async version
+* Having essentially 1 or 2 public methods API may be considered simplier
+* It is deployed to Maven Central
+* API is certainly more stable - this driver may change in any not foreseeable way 
+
