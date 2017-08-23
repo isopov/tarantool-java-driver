@@ -121,7 +121,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 					throw new TarantoolException("Unknown body Key " + bodyKey);
 				}
 			} else if (bodySize == 2) {
-				return new MapResult(unpacker);
+				return new SqlResult(unpacker);
 			} else {
 				throw new TarantoolException("Body size is " + bodySize);
 			}
@@ -619,7 +619,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	@Override
-	public void execute(String sqlQuery) {
+	public void sql(String sqlQuery) {
 		preActionCheck();
 		currentQuery = SQL;
 

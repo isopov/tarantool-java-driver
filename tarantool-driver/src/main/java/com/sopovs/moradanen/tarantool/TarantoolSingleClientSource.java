@@ -132,8 +132,8 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		}
 
 		@Override
-		public void execute(String sqlQuery) {
-			client.execute(sqlQuery);
+		public void sql(String sqlQuery) {
+			client.sql(sqlQuery);
 		}
 
 		@Override

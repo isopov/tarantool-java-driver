@@ -8,12 +8,12 @@ import java.util.Map;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ImmutableArrayValue;
 
-public class MapResult extends AbstractResult<ImmutableArrayValue> {
+public class SqlResult extends AbstractResult<ImmutableArrayValue> {
 	private final Map<String, Integer> fieldNames = new HashMap<>();
 	private final Map<String, Integer> fieldNamesView = Collections.unmodifiableMap(fieldNames);
 	private final int size;
 
-	MapResult(MessageUnpacker unpacker) {
+	SqlResult(MessageUnpacker unpacker) {
 		super(unpacker);
 		try {
 			size = getSize(unpacker);

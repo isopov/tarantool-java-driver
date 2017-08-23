@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-import com.sopovs.moradanen.tarantool.MapResult;
+import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 
 public class TarantoolPreparedStatement extends TarantoolStatement implements PreparedStatement {
@@ -39,11 +39,11 @@ public class TarantoolPreparedStatement extends TarantoolStatement implements Pr
 	@Override
 	public TarantoolResultSet executeQuery() throws SQLException {
 		executeAndSetParameters();
-		return new TarantoolResultSet(this, (MapResult) client.execute());
+		return new TarantoolResultSet(this, (SqlResult) client.execute());
 	}
 
 	private void executeAndSetParameters() throws SQLException {
-		client.execute(sql);
+		client.sql(sql);
 		for (int i = 0; i < parameters.size(); i++) {
 			requireParameter(parameters.get(i), i).set(client);
 		}

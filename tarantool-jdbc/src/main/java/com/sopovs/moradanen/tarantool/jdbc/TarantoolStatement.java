@@ -6,7 +6,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-import com.sopovs.moradanen.tarantool.MapResult;
+import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 
 public class TarantoolStatement implements Statement {
@@ -21,13 +21,13 @@ public class TarantoolStatement implements Statement {
 
 	@Override
 	public TarantoolResultSet executeQuery(String sql) throws SQLException {
-		client.execute(sql);
-		return new TarantoolResultSet(this, (MapResult) client.execute());
+		client.sql(sql);
+		return new TarantoolResultSet(this, (SqlResult) client.execute());
 	}
 
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
-		client.execute(sql);
+		client.sql(sql);
 		return (int) client.executeUpdate();
 	}
 

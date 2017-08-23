@@ -187,7 +187,7 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
-		public void execute(String sqlQuery) {
+		public void sql(String sqlQuery) {
 			throw new TarantoolException("Not implemented!");
 		}
 

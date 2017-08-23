@@ -232,9 +232,9 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
-		public void execute(String sqlQuery) {
+		public void sql(String sqlQuery) {
 			try {
-				client.execute(sqlQuery);
+				client.sql(sqlQuery);
 			} catch (TarantoolException e) {
 				throw closeOnException(e);
 			}

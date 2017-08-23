@@ -15,7 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.sopovs.moradanen.tarantool.MapResult;
+import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
 
@@ -47,7 +47,7 @@ public class TarantoolConnectionTest {
 
 			TarantoolResultSet res = st.executeQuery("select * from table1");
 			assertTrue(res.next());
-			assertTrue(res.isWrapperFor(MapResult.class));
+			assertTrue(res.isWrapperFor(SqlResult.class));
 			assertEquals(1, res.getInt(1));
 			assertEquals(1, res.getInt("column1"));
 			assertFalse(res.wasNull());

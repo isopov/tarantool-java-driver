@@ -22,15 +22,15 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
 
-import com.sopovs.moradanen.tarantool.MapResult;
+import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolException;
 
 public class TarantoolResultSet implements ResultSet {
 	private final TarantoolStatement statement;
-	private final MapResult result;
+	private final SqlResult result;
 	private boolean wasNull = false;
 
-	public TarantoolResultSet(TarantoolStatement statement, MapResult result) {
+	public TarantoolResultSet(TarantoolStatement statement, SqlResult result) {
 		this.statement = statement;
 		this.result = result;
 	}
@@ -45,7 +45,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		return MapResult.class.equals(iface);
+		return SqlResult.class.equals(iface);
 	}
 
 	@Override
