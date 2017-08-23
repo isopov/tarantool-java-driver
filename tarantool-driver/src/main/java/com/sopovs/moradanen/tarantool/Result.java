@@ -1,30 +1,35 @@
 package com.sopovs.moradanen.tarantool;
 
+import java.nio.ByteBuffer;
+
 //TODO Closeable?
 public interface Result {
 
-	public int getSize();
+	int getSize();
 
-	public boolean hasNext();
+	boolean hasNext();
 
-	public boolean isNull(int index);
+	boolean isNull(int index);
 
-	public boolean getBoolean(int index);
+	boolean getBoolean(int index);
 
-	public double getDouble(int index) ;
+	double getDouble(int index);
 
-	public float getFloat(int index);
+	float getFloat(int index);
 
-	public long getLong(int index);
+	long getLong(int index);
 
-	public int getInt(int index) ;
+	int getInt(int index);
 
-	public String getString(int index) ;
+	String getString(int index);
 
-	public int currentSize() ;
+	byte[] getBytes(int index);
 
-	public boolean next();
+	ByteBuffer getByteBuffer(int index);
 
-	public void consume();
+	int currentSize();
 
+	boolean next();
+
+	void consume();
 }

@@ -6,9 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.msgpack.core.MessageUnpacker;
-import org.msgpack.value.ImmutableArrayValue;
 
-public class SqlResult extends AbstractResult<ImmutableArrayValue> {
+public class SqlResult extends AbstractResult {
 	private final Map<String, Integer> fieldNames = new HashMap<>();
 	private final Map<String, Integer> fieldNamesView = Collections.unmodifiableMap(fieldNames);
 	private final int size;
@@ -53,46 +52,6 @@ public class SqlResult extends AbstractResult<ImmutableArrayValue> {
 		return unpacker.unpackArrayHeader();
 	}
 
-	@Override
-	public boolean isNull(int index) {
-		return current.get(index).isNilValue();
-	}
-
-	@Override
-	public boolean getBoolean(int index) {
-		return current.get(index).asBooleanValue().getBoolean();
-	}
-
-	@Override
-	public double getDouble(int index) {
-		return current.get(index).asFloatValue().toDouble();
-	}
-
-	@Override
-	public float getFloat(int index) {
-		return current.get(index).asFloatValue().toFloat();
-	}
-
-	@Override
-	public long getLong(int index) {
-		return current.get(index).asIntegerValue().asLong();
-	}
-
-	@Override
-	public int getInt(int index) {
-		return current.get(index).asIntegerValue().asInt();
-	}
-
-	@Override
-	public String getString(int index) {
-		return current.get(index).asStringValue().asString();
-	}
-
-	@Override
-	public int currentSize() {
-		return current.size();
-	}
-
 	public Map<String, Integer> getFieldNames() {
 		return fieldNamesView;
 	}
@@ -104,14 +63,4 @@ public class SqlResult extends AbstractResult<ImmutableArrayValue> {
 		}
 		return index;
 	}
-
-	@Override
-	protected ImmutableArrayValue nextInternal() {
-		try {
-			return unpacker.unpackValue().asArrayValue();
-		} catch (IOException e) {
-			throw new TarantoolException(e);
-		}
-	}
-
 }

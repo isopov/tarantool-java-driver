@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -149,7 +150,12 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public byte[] getBytes(int columnIndex) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
+		return result.getBytes(columnIndex - 1);
 	}
 
 	@Override
@@ -179,7 +185,11 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public InputStream getBinaryStream(int columnIndex) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		return new ByteBufferBackedInputStream(result.getByteBuffer(columnIndex - 1));
 	}
 
 	@Override
@@ -256,42 +266,74 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getBigDecimal(result.getIndex(columnLabel) + 1, scale);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public byte[] getBytes(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getBytes(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public Date getDate(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getDate(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public Time getTime(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getTime(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getTimestamp(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public InputStream getAsciiStream(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getAsciiStream(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getUnicodeStream(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
 	public InputStream getBinaryStream(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		try {
+			return getBinaryStream(result.getIndex(columnLabel) + 1);
+		} catch (TarantoolException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	@Override
@@ -349,7 +391,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Reader getCharacterStream(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getCharacterStream(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -363,7 +405,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getBigDecimal(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -747,8 +789,55 @@ public class TarantoolResultSet implements ResultSet {
 	}
 
 	@Override
-	public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+		if (result.isNull(columnIndex - 1)) {
+			wasNull = true;
+			return null;
+		}
+		wasNull = false;
+		if (type == null) {
+			throw new SQLException("type must not be null");
+		}
+		if(type.equals(ByteBuffer.class)) {
+			return type.cast(result.getByteBuffer(columnIndex - 1));
+		}
+		if (type.equals(Boolean.class)) {
+			return type.cast(result.getBoolean(columnIndex - 1));
+		}
+		if (type.equals(Byte.class)) {
+			return type.cast((byte) result.getInt(columnIndex - 1));
+		}
+		if (type.equals(Short.class)) {
+			return type.cast((short) result.getInt(columnIndex - 1));
+		}
+		if (type.equals(Integer.class)) {
+			return type.cast(result.getInt(columnIndex - 1));
+		}
+		if (type.equals(Long.class)) {
+			return type.cast(result.getLong(columnIndex - 1));
+		}
+
+		if (type.equals(Double.class)) {
+			return type.cast(result.getDouble(columnIndex - 1));
+		}
+		if (type.equals(Float.class)) {
+			return type.cast(result.getFloat(columnIndex - 1));
+		}
+		if (type.equals(String.class)) {
+			return type.cast(result.getString(columnIndex - 1));
+		}
+
 		throw new SQLFeatureNotSupportedException();
+	}
+
+	@Override
+	public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+		return getObject(result.getIndex(columnLabel) + 1, type);
+	}
+
+	@Override
+	public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+		return getObject(result.getIndex(columnLabel) + 1, map);
 	}
 
 	@Override
@@ -778,7 +867,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getDate(result.getIndex(columnLabel) + 1, cal);
 	}
 
 	@Override
@@ -788,7 +877,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getTime(result.getIndex(columnLabel) + 1, cal);
 	}
 
 	@Override
@@ -798,7 +887,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getTimestamp(result.getIndex(columnLabel) + 1, cal);
 	}
 
 	@Override
@@ -808,7 +897,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public URL getURL(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getURL(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -879,7 +968,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public boolean isClosed() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return !result.hasNext();
 	}
 
 	@Override
@@ -919,7 +1008,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public SQLXML getSQLXML(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getSQLXML(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -939,7 +1028,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public String getNString(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getNString(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -949,7 +1038,7 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public Reader getNCharacterStream(String columnLabel) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return getNCharacterStream(result.getIndex(columnLabel) + 1);
 	}
 
 	@Override
@@ -1091,15 +1180,4 @@ public class TarantoolResultSet implements ResultSet {
 	public void updateNClob(String columnLabel, Reader reader) throws SQLException {
 		throw new SQLFeatureNotSupportedException();
 	}
-
-	@Override
-	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
-	}
-
-	@Override
-	public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
-		throw new SQLFeatureNotSupportedException();
-	}
-
 }
