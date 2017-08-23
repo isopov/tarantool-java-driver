@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>org.tarantool</groupId>
 			<artifactId>connector</artifactId>
-			<version>1.7.4</version>
+			<version>1.7.5</version>
 		</dependency>
 	</dependencies>
 
