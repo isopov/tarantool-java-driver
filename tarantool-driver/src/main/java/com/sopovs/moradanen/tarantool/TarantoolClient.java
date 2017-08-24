@@ -119,6 +119,8 @@ public interface TarantoolClient extends Closeable {
 
 	void setString(String val);
 
+	void setBytes(byte[] bytes);
+
 	String getVersion();
 
 	void sql(String sqlQuery);
@@ -129,6 +131,7 @@ public interface TarantoolClient extends Closeable {
 	void close();
 
 	int executeUpdate();
-	
+
 	int[] executeBatchUpdate();
+
 }

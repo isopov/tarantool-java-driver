@@ -21,12 +21,14 @@ public class TarantoolStatement implements Statement {
 
 	@Override
 	public TarantoolResultSet executeQuery(String sql) throws SQLException {
+		checkClosed();
 		client.sql(sql);
 		return new TarantoolResultSet(this, (SqlResult) client.execute());
 	}
 
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
+		checkClosed();
 		client.sql(sql);
 		return (int) client.executeUpdate();
 	}
@@ -47,6 +49,12 @@ public class TarantoolStatement implements Statement {
 	@Override
 	public boolean isClosed() throws SQLException {
 		return closed;
+	}
+
+	protected void checkClosed() throws SQLException {
+		if (closed) {
+			throw new SQLException("This statement has been closed.");
+		}
 	}
 
 	@Override
@@ -179,6 +187,7 @@ public class TarantoolStatement implements Statement {
 
 	@Override
 	public int[] executeBatch() throws SQLException {
+		checkClosed();
 		return client.executeBatchUpdate();
 	}
 
@@ -230,7 +239,6 @@ public class TarantoolStatement implements Statement {
 	@Override
 	public void setPoolable(boolean poolable) throws SQLException {
 		throw new SQLFeatureNotSupportedException();
-
 	}
 
 	@Override
@@ -241,7 +249,6 @@ public class TarantoolStatement implements Statement {
 	@Override
 	public void closeOnCompletion() throws SQLException {
 		throw new SQLFeatureNotSupportedException();
-
 	}
 
 	@Override

@@ -495,8 +495,20 @@ public class TarantoolClientImpl implements TarantoolClient {
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
-
 	}
+	
+	@Override
+	public void setBytes(byte[] bytes) {
+		preSetCheck();
+		try {
+			querySize++;
+			queryPacker.packBinaryHeader(bytes.length);
+			queryPacker.writePayload(bytes);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+	
 
 	@Override
 	public void setLong(long val) {

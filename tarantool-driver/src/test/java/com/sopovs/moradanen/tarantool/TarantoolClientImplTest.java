@@ -284,14 +284,12 @@ public class TarantoolClientImplTest {
 		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.sql("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
-			// TODO assert https://github.com/tarantool/tarantool/issues/2617
-			client.executeUpdate();
+			assertEquals(1L,client.executeUpdate());
 
 			work.accept(client);
 
 			client.sql("DROP TABLE table1");
-			// TODO assert https://github.com/tarantool/tarantool/issues/2617
-			client.executeUpdate();
+			assertEquals(1L,client.executeUpdate());
 		}
 	}
 

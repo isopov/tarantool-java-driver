@@ -1,5 +1,6 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -338,13 +339,11 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return null;
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
-
 	}
 
 	@Override
@@ -798,7 +797,7 @@ public class TarantoolResultSet implements ResultSet {
 		if (type == null) {
 			throw new SQLException("type must not be null");
 		}
-		if(type.equals(ByteBuffer.class)) {
+		if (type.equals(ByteBuffer.class)) {
 			return type.cast(result.getByteBuffer(columnIndex - 1));
 		}
 		if (type.equals(Boolean.class)) {
@@ -1179,5 +1178,38 @@ public class TarantoolResultSet implements ResultSet {
 	@Override
 	public void updateNClob(String columnLabel, Reader reader) throws SQLException {
 		throw new SQLFeatureNotSupportedException();
+	}
+
+	private static final class ByteBufferBackedInputStream extends InputStream {
+
+		private final ByteBuffer buf;
+
+		public ByteBufferBackedInputStream(ByteBuffer buf) {
+			this.buf = buf;
+		}
+
+		public int read() throws IOException {
+			if (!buf.hasRemaining()) {
+				return -1;
+			}
+			return buf.get() & 0xFF;
+		}
+
+		public int read(byte[] bytes, int off, int len) throws IOException {
+			if (bytes == null) {
+				throw new NullPointerException();
+			} else if (off < 0 || len < 0 || len > bytes.length - off) {
+				throw new IndexOutOfBoundsException();
+			} else if (len == 0) {
+				return 0;
+			}
+			if (!buf.hasRemaining()) {
+				return -1;
+			}
+
+			len = Math.min(len, buf.remaining());
+			buf.get(bytes, off, len);
+			return len;
+		}
 	}
 }

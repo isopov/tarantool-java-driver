@@ -187,6 +187,11 @@ public class TarantoolSingleClientSource implements TarantoolClientSource {
 		}
 
 		@Override
+		public void setBytes(byte[] bytes) {
+			client.setBytes(bytes);
+		}
+
+		@Override
 		public String getVersion() {
 			return client.getVersion();
 		}

@@ -322,6 +322,15 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
+		public void setBytes(byte[] bytes) {
+			try {
+				client.setBytes(bytes);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+		}
+
+		@Override
 		public String getVersion() {
 			return client.getVersion();
 		}
