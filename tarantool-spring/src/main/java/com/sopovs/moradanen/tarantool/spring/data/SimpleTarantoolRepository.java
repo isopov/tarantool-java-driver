@@ -7,13 +7,16 @@ import com.sopovs.moradanen.tarantool.TarantoolTemplate;
 public class SimpleTarantoolRepository<T, ID extends Serializable> implements TarantoolRepository<T, ID> {
 
 	private final TarantoolTemplate template;
+	private final TarantoolEntityInformation<T, ID> entityInformation;
 
-	public SimpleTarantoolRepository(TarantoolTemplate template) {
+	public SimpleTarantoolRepository(TarantoolTemplate template, TarantoolEntityInformation<T, ID> entityInformation) {
 		this.template = template;
+		this.entityInformation = entityInformation;
 	}
 
 	@Override
 	public <S extends T> S save(S entity) {
+		
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -26,6 +29,7 @@ public class SimpleTarantoolRepository<T, ID extends Serializable> implements Ta
 
 	@Override
 	public T findOne(ID id) {
+//		template.selectAll(space, extractor)
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -38,7 +42,7 @@ public class SimpleTarantoolRepository<T, ID extends Serializable> implements Ta
 
 	@Override
 	public Iterable<T> findAll() {
-		// TODO Auto-generated method stub
+//		template.selectAll(entityInformation.getSpaceId(), extractor)
 		return null;
 	}
 
