@@ -12,6 +12,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+
 public class TarantoolClientImplExceptionsTest {
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();

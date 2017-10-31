@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool;
+package com.sopovs.moradanen.tarantool.core;
 
 import org.junit.Test;
 

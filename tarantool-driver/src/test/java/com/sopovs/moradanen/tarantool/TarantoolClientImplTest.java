@@ -9,6 +9,9 @@ import java.util.function.Consumer;
 
 import org.junit.Test;
 
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.Util;
+
 public class TarantoolClientImplTest {
 	@Test
 	public void testConnect() {

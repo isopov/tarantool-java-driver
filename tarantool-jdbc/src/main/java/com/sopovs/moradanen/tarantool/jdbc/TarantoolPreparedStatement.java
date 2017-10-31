@@ -29,7 +29,7 @@ import java.util.List;
 
 import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
-import com.sopovs.moradanen.tarantool.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 public class TarantoolPreparedStatement extends TarantoolStatement implements PreparedStatement {
 

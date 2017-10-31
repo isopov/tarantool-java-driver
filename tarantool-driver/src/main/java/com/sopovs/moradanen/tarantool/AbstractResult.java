@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ImmutableArrayValue;
 
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+
 public abstract class AbstractResult implements Result {
 
 	private int counter;

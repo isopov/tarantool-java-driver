@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.msgpack.core.MessageUnpacker;
 
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.Util;
+
 public class SqlResult extends AbstractResult {
 	private final Map<String, Integer> fieldNames = new HashMap<>();
 	private final Map<String, Integer> fieldNamesView = Collections.unmodifiableMap(fieldNames);

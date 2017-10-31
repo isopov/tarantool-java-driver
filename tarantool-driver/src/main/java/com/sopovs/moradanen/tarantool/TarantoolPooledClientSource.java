@@ -4,6 +4,10 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.function.Function;
 
+import com.sopovs.moradanen.tarantool.core.Iter;
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+
 //TODO lazy clients creation and closing clients that are stale for too long
 public class TarantoolPooledClientSource implements TarantoolClientSource {
 

@@ -15,6 +15,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import com.sopovs.moradanen.tarantool.core.Iter;
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+
 public class TarantoolPooledClientSourceTest {
 	private static final TarantoolConfig DUMMY_CONFIG = new TarantoolConfig(null, 0, null, null);
 	private static final int POOL_SIZE = 5;

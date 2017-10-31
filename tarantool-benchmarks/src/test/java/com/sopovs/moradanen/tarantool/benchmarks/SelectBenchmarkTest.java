@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool;
+package com.sopovs.moradanen.tarantool.benchmarks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -8,6 +8,8 @@ import java.sql.SQLException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.sopovs.moradanen.tarantool.benchmarks.SelectBenchmark;
 
 public class SelectBenchmarkTest {
 

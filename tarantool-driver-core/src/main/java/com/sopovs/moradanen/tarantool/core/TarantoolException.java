@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool;
+package com.sopovs.moradanen.tarantool.core;
 
 public class TarantoolException extends RuntimeException {
 	private static final long serialVersionUID = 1L;

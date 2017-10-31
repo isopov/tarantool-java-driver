@@ -1,5 +1,9 @@
 package com.sopovs.moradanen.tarantool;
 
+import com.sopovs.moradanen.tarantool.core.Iter;
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+
 public class TarantoolSingleClientSource implements TarantoolClientSource {
 	private boolean closed = false;
 	private boolean given = false;

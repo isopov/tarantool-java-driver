@@ -2,6 +2,11 @@ package com.sopovs.moradanen.tarantool;
 
 import java.io.Closeable;
 
+import com.sopovs.moradanen.tarantool.core.Iter;
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.Util;
+
 public interface TarantoolClient extends Closeable {
 
 	Result execute();

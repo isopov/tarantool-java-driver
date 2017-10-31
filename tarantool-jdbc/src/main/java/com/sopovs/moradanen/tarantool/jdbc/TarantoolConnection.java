@@ -22,7 +22,7 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 import com.sopovs.moradanen.tarantool.TarantoolClient;
-import com.sopovs.moradanen.tarantool.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 public class TarantoolConnection implements Connection {
 

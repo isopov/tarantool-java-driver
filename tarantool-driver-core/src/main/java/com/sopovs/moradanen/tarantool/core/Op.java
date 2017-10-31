@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool;
+package com.sopovs.moradanen.tarantool.core;
 
 public enum Op {
 	PLUS("+"), MINUS("-"), AND("&"), OR("|"), XOR("^"), DELETE("#");

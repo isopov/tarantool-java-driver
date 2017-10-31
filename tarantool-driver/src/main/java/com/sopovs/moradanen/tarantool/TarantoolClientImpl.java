@@ -16,6 +16,12 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.core.buffer.MessageBuffer;
 
+import com.sopovs.moradanen.tarantool.core.Iter;
+import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.Util;
+
 //TODO finalize equivalent via PhantomReference
 public class TarantoolClientImpl implements TarantoolClient {
 	static final String PRE_CHANGE_EXCEPTION = "Need to call update/upsert before change";

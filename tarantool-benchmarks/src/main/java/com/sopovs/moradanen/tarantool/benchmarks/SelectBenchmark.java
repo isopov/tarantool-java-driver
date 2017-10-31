@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool;
+package com.sopovs.moradanen.tarantool.benchmarks;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -32,6 +32,13 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 import org.tarantool.TarantoolConnection;
+
+import com.sopovs.moradanen.tarantool.TarantoolClient;
+import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
+import com.sopovs.moradanen.tarantool.TarantoolClientSource;
+import com.sopovs.moradanen.tarantool.TarantoolSingleClientSource;
+import com.sopovs.moradanen.tarantool.TarantoolTemplate;
+import com.sopovs.moradanen.tarantool.core.Iter;
 
 //Benchmark                                            (size)        Score          Error   Units
 //SelectBenchmark.client                                    1       60.051 ±       19.458   us/op

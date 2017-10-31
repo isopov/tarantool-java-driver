@@ -25,7 +25,7 @@ import java.util.Calendar;
 import java.util.Map;
 
 import com.sopovs.moradanen.tarantool.SqlResult;
-import com.sopovs.moradanen.tarantool.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 public class TarantoolResultSet implements ResultSet {
 	private final TarantoolStatement statement;
