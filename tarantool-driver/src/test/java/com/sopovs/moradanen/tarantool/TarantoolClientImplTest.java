@@ -287,12 +287,12 @@ public class TarantoolClientImplTest {
 		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
 		try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
 			client.sql("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
-			assertEquals(1L,client.executeUpdate());
+			assertEquals(1L, client.executeUpdate());
 
 			work.accept(client);
 
 			client.sql("DROP TABLE TABLE1");
-			assertEquals(1L,client.executeUpdate());
+			assertEquals(1L, client.executeUpdate());
 		}
 	}
 
@@ -317,6 +317,7 @@ public class TarantoolClientImplTest {
 			assertEquals(1, mapResult.getInt(mapResult.getIndex("COLUMN1")));
 			assertEquals("A", mapResult.getString(mapResult.getIndex("COLUMN2")));
 			assertFalse(mapResult.hasNext());
+			assertFalse(mapResult.next());
 		});
 	}
 

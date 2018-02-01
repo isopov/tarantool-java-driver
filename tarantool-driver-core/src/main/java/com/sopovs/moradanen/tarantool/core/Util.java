@@ -18,7 +18,7 @@ public final class Util {
 	public static final int CODE_UPSERT = 9;
 	public static final int CODE_CALL = 10;
 	// SQL
-	public static final int CODE_EXECUTE = 11;
+	public static final int CODE_EXECUTE = 12;
 	public static final int CODE_PING = 64;
 	public static final int CODE_SUBSCRIBE = 66;
 
