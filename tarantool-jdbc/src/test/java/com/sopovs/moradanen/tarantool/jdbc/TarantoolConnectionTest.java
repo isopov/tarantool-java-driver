@@ -37,25 +37,25 @@ public class TarantoolConnectionTest {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				TarantoolConnection con = new TarantoolConnection(client);
 				TarantoolStatement st = con.createStatement()) {
-			st.executeUpdate("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
+			st.executeUpdate("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
 
-			try (PreparedStatement pst = con.prepareStatement("INSERT INTO table1 values(?,?)")) {
+			try (PreparedStatement pst = con.prepareStatement("INSERT INTO TABLE1 VALUES(?,?)")) {
 				pst.setString(2, value);
 				pst.setInt(1, 1);
 				assertEquals(1, pst.executeUpdate());
 			}
 
-			TarantoolResultSet res = st.executeQuery("select * from table1");
+			TarantoolResultSet res = st.executeQuery("SELECT * FROM table1");
 			assertTrue(res.next());
 			assertTrue(res.isWrapperFor(SqlResult.class));
 			assertEquals(1, res.getInt(1));
-			assertEquals(1, res.getInt("column1"));
+			assertEquals(1, res.getInt("COLUMN1"));
 			assertFalse(res.wasNull());
 
 			resConsumer.accept(res);
 
 			assertFalse(res.next());
-			st.executeUpdate("DROP TABLE table1");
+			st.executeUpdate("DROP TABLE TABLE1");
 		}
 	}
 
@@ -65,7 +65,7 @@ public class TarantoolConnectionTest {
 		testOneSelect("Foobar", res -> {
 			try {
 				assertEquals("Foobar", res.getString(2));
-				assertEquals("Foobar", res.getString("column2"));
+				assertEquals("Foobar", res.getString("COLUMN2"));
 			} catch (SQLException e) {
 				throw new AssertionError(e);
 			}
@@ -77,7 +77,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetByte() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertEquals(0, res.getByte("column2"));
+				assertEquals(0, res.getByte("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -90,7 +90,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetShort() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertEquals(0, res.getShort("column2"));
+				assertEquals(0, res.getShort("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -103,7 +103,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetInt() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertEquals(0, res.getInt("column2"));
+				assertEquals(0, res.getInt("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -116,7 +116,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetLong() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertEquals(0, res.getLong("column2"));
+				assertEquals(0, res.getLong("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -129,7 +129,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetString() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertNull(res.getString("column2"));
+				assertNull(res.getString("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -142,7 +142,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetObject() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertNull(res.getObject("column2"));
+				assertNull(res.getObject("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -155,7 +155,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetRef() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertNull(res.getRef("column2"));
+				assertNull(res.getRef("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -168,7 +168,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetBlob() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertNull(res.getBlob("column2"));
+				assertNull(res.getBlob("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -181,7 +181,7 @@ public class TarantoolConnectionTest {
 	public void testWasNullGetClob() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertNull(res.getClob("column2"));
+				assertNull(res.getClob("COLUMN2"));
 				assertTrue(res.wasNull());
 			} catch (SQLException e) {
 				throw new AssertionError(e);
@@ -194,8 +194,8 @@ public class TarantoolConnectionTest {
 	public void testFindColumn() throws SQLException {
 		testOneSelect(null, res -> {
 			try {
-				assertEquals(1, res.findColumn("column1"));
-				assertEquals(2, res.findColumn("column2"));
+				assertEquals(1, res.findColumn("COLUMN1"));
+				assertEquals(2, res.findColumn("COLUMN2"));
 			} catch (SQLException e) {
 				throw new AssertionError(e);
 			}
@@ -209,9 +209,9 @@ public class TarantoolConnectionTest {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				TarantoolConnection con = new TarantoolConnection(client);
 				TarantoolStatement st = con.createStatement()) {
-			st.executeUpdate("CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(100))");
+			st.executeUpdate("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
 
-			try (TarantoolPreparedStatement pst = con.prepareStatement("INSERT INTO table1 values(?,?)")) {
+			try (TarantoolPreparedStatement pst = con.prepareStatement("INSERT INTO TABLE1 VALUES(?,?)")) {
 				for (int i = 0; i < 10; i++) {
 					pst.setInt(1, i);
 					pst.setString(2, "FooBar" + i);
@@ -220,12 +220,12 @@ public class TarantoolConnectionTest {
 				pst.executeBatch();
 			}
 
-			TarantoolResultSet res = st.executeQuery("select count(*) from table1");
+			TarantoolResultSet res = st.executeQuery("SELECT COUNT(*) FROM TABLE1");
 			assertTrue(res.next());
 			assertEquals(10, res.getInt(1));
 
 			assertFalse(res.next());
-			st.executeUpdate("DROP TABLE table1");
+			st.executeUpdate("DROP TABLE TABLE1");
 		}
 	}
 	

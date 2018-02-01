@@ -372,11 +372,12 @@ public class TarantoolResultSet implements ResultSet {
 
 	@Override
 	public int findColumn(String columnLabel) throws SQLException {
-		Integer index = result.getFieldNames().get(columnLabel);
-		if (index != null) {
-			return index + 1;
+		try {
+			return result.getIndex(columnLabel) + 1;
+		} catch (TarantoolException e) {
+			throw new SQLException(columnLabel + " column is absent", e);
 		}
-		throw new SQLException(columnLabel + " column is absent");
+
 	}
 
 	@Override

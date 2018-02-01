@@ -103,8 +103,8 @@ public class SelectBenchmark {
 
 	private void setupData() throws SQLException {
 		try (Statement st = jdbcConnection.createStatement();
-				PreparedStatement pst = jdbcConnection.prepareStatement("insert into jdbcbenchmark values(?,?)")) {
-			st.executeUpdate("create table jdbcbenchmark(c1 INTEGER PRIMARY KEY, c2 VARCHAR(100))");
+				PreparedStatement pst = jdbcConnection.prepareStatement("INSERT INTO JDBCBENCHMARK VALUES(?,?)")) {
+			st.executeUpdate("CREATE TABLE JDBCBENCHMARK(C1 INTEGER PRIMARY KEY, C2 VARCHAR(100))");
 			for (int i = 0; i < size; i++) {
 				pst.setInt(1, i);
 				pst.setString(2, "FooBar" + i);
@@ -113,14 +113,14 @@ public class SelectBenchmark {
 			pst.executeBatch();
 		}
 		try (TarantoolClient client = clientSource.getClient()) {
-			space = client.space("jdbcbenchmark");
+			space = client.space("JDBCBENCHMARK");
 		}
 	}
 
 	@Benchmark
 	public List<Foo> jdbc() throws SQLException {
 		List<Foo> result = new ArrayList<>();
-		try (PreparedStatement pst = jdbcConnection.prepareStatement("select * from jdbcbenchmark");
+		try (PreparedStatement pst = jdbcConnection.prepareStatement("SELECT * FROM JDBCBENCHMARK");
 				ResultSet res = pst.executeQuery()) {
 			while (res.next()) {
 				result.add(new Foo(res.getInt(1), res.getString(2)));
@@ -166,7 +166,7 @@ public class SelectBenchmark {
 	@TearDown
 	public void tearDown() throws SQLException {
 		try (Statement st = jdbcConnection.createStatement()) {
-			st.executeUpdate("drop table jdbcbenchmark");
+			st.executeUpdate("DROP TABLE JDBCBENCHMARK");
 		}
 
 		connection.close();
