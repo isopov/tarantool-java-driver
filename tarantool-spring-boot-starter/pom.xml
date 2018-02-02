@@ -9,11 +9,11 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>tarantool-spring</artifactId>
+	<artifactId>tarantool-spring-boot-starter</artifactId>
 	<packaging>jar</packaging>
 
 	<properties>
-		<spring.boot.version>1.5.7.RELEASE</spring.boot.version>
+		<spring.boot.version>1.5.10.RELEASE</spring.boot.version>
 	</properties>
 
 	<dependencies>
@@ -27,13 +27,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>
 			<version>${spring.boot.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.data</groupId>
-			<artifactId>spring-data-commons</artifactId>
-			<version>1.13.7.RELEASE</version>
-			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

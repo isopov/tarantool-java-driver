@@ -25,8 +25,7 @@
 		<module>tarantool-driver-core</module>
 		<module>tarantool-driver</module>
 		<module>tarantool-jdbc</module>
-		<module>tarantool-driver-async</module>
-		<module>tarantool-spring</module>
+		<module>tarantool-spring-boot-starter</module>
 		<module>tarantool-benchmarks</module>
 	</modules>
 
