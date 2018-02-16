@@ -74,7 +74,7 @@ import com.sopovs.moradanen.tarantool.core.Iter;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-public class SelectBenchmark {
+public class SingleSelectBenchmark {
 
 	private TarantoolConnection connection;
 	private org.tarantool.TarantoolClient referenceClient;
@@ -175,7 +175,7 @@ public class SelectBenchmark {
 	}
 
 	public static void main(String[] args) throws RunnerException {
-		Options opt = new OptionsBuilder().include(".*" + SelectBenchmark.class.getSimpleName() + ".*")
+		Options opt = new OptionsBuilder().include(".*" + SingleSelectBenchmark.class.getSimpleName() + ".*")
 				.addProfiler(GCProfiler.class).build();
 
 		new Runner(opt).run();

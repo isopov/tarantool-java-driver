@@ -9,11 +9,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.sopovs.moradanen.tarantool.benchmarks.SelectBenchmark;
+import com.sopovs.moradanen.tarantool.benchmarks.SingleSelectBenchmark;
 
-public class SelectBenchmarkTest {
+public class SingleSelectBenchmarkTest {
 
-	private SelectBenchmark benchmark = new SelectBenchmark();
+	private SingleSelectBenchmark benchmark = new SingleSelectBenchmark();
 
 	private static String getEnvTarantoolVersion() {
 		String minor = System.getenv("TARANTOOL_VERSION");
