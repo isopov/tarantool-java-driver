@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.tarantool;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -8,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
@@ -218,12 +220,16 @@ public class TarantoolClientImpl implements TarantoolClient {
 		packer.packInt(currentQueryToQueryCode(currentQuery));
 		packer.packArrayHeader(querySize);
 		if (querySize > 0) {
-			byte[] query = queryPacker.toByteArray();
-			packer.addPayload(query);
+			List<MessageBuffer> bufferList = queryPacker.toBufferList();
+			for (int i = 0; i < bufferList.size(); i++) {
+				MessageBuffer messageBuffer = bufferList.get(i);
+				// See MessageBufferPackerBenchmark in tarantool-benchmarks
+				packer.addPayload(messageBuffer.array(), messageBuffer.arrayOffset(), messageBuffer.size());
+			}
+			queryPacker.clear();
 		}
 		currentQuery = 0;
 		querySize = 0;
-		queryPacker.clear();
 	}
 
 	@Override
@@ -298,11 +304,13 @@ public class TarantoolClientImpl implements TarantoolClient {
 	}
 
 	private void finishQuery() throws IOException {
+		packer.flush();
 		List<MessageBuffer> bufferList = packer.toBufferList();
 		writeSize(bufferList);
 		for (int i = 0; i < bufferList.size(); i++) {
 			MessageBuffer messageBuffer = bufferList.get(i);
-			out.write(messageBuffer.toByteArray());
+			// See MessageBufferPackerBenchmark in tarantool-benchmarks
+			out.write(messageBuffer.array(), messageBuffer.arrayOffset(), messageBuffer.size());
 		}
 		packer.clear();
 	}
@@ -502,7 +510,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 			throw new TarantoolException(e);
 		}
 	}
-	
+
 	@Override
 	public void setBytes(byte[] bytes) {
 		preSetCheck();
@@ -514,7 +522,6 @@ public class TarantoolClientImpl implements TarantoolClient {
 			throw new TarantoolException(e);
 		}
 	}
-	
 
 	@Override
 	public void setLong(long val) {
