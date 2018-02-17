@@ -16,12 +16,12 @@ sudo: required
 #matrix of builds
 jobs:
   include: 
-    - env: TARANTOOL_VERSION=7
+    - env: TARANTOOL_VERSION=1.7
       before_script: ./install_tarantool.sh
-    - env: TARANTOOL_VERSION=8
+    - env: TARANTOOL_VERSION=2.0
       before_script: ./install_tarantool.sh
     #Tarantool 1.6 does not come with example.lua
-    - env: TARANTOOL_VERSION=6
+    - env: TARANTOOL_VERSION=1.6
       before_script:
         - ./install_tarantool.sh
         - sudo cp example.lua /etc/tarantool/instances.available/

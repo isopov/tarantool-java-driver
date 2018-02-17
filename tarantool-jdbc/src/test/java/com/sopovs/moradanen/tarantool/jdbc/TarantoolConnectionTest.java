@@ -23,14 +23,12 @@ public class TarantoolConnectionTest {
 
 	@Before
 	public void setup() {
-		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
+		assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
 	}
 
 	public static String getEnvTarantoolVersion() {
-		String minor = System.getenv("TARANTOOL_VERSION");
-		minor = minor == null ? "8" : minor;
-		String majorMinor = "1." + minor;
-		return majorMinor;
+		String version = System.getenv("TARANTOOL_VERSION");
+		return version == null ? "2.0" : version;
 	}
 
 	private void testOneSelect(String value, Consumer<TarantoolResultSet> resConsumer) throws SQLException {

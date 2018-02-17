@@ -14,7 +14,7 @@ import org.junit.Test;
 public class DriverManagerTest {
 	@Before
 	public void setup() {
-		assumeTrue(getEnvTarantoolVersion().startsWith("1.8"));
+		assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
 	}
 	
 	@Test
