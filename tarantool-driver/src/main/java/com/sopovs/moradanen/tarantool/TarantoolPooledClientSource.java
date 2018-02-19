@@ -34,14 +34,13 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 	public TarantoolClient getClient() {
 		synchronized (pool) {
 			while (!poolClosed) {
+				TarantoolClient client = pool.pollFirst();
+				if (client != null) {
+					return new TarantoolClientProxy(client);
+				}
 				if (currentSize < size) {
 					currentSize++;
 					return new TarantoolClientProxy(clientFactory.apply(config));
-				}
-				TarantoolClient client = pool.pollFirst();
-				if (client != null) {
-
-					return new TarantoolClientProxy(client);
 				}
 				try {
 					pool.wait();

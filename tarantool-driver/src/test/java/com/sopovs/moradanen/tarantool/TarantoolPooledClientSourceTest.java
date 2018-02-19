@@ -130,6 +130,15 @@ public class TarantoolPooledClientSourceTest {
 
 	@Test
 	public void testPoolSize() {
+		testReuseOneConnection(1);
+	}
+
+	@Test
+	public void testReuseConnectionWhenPossible() {
+		testReuseOneConnection(2);
+	}
+
+	private void testReuseOneConnection(int poolSize) {
 		Function<TarantoolConfig, TarantoolClient> clientFactory = new Function<TarantoolConfig, TarantoolClient>() {
 			boolean used = false;
 
@@ -141,7 +150,7 @@ public class TarantoolPooledClientSourceTest {
 			}
 		};
 
-		try (TarantoolClientSource pool = new TarantoolPooledClientSource(DUMMY_CONFIG, clientFactory, 1)) {
+		try (TarantoolClientSource pool = new TarantoolPooledClientSource(DUMMY_CONFIG, clientFactory, poolSize)) {
 			pool.getClient().close();
 			pool.getClient().close();
 		}
