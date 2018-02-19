@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.tarantool;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -12,8 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
@@ -22,6 +26,9 @@ import com.sopovs.moradanen.tarantool.core.TarantoolException;
 public class TarantoolPooledClientSourceTest {
 	private static final TarantoolConfig DUMMY_CONFIG = new TarantoolConfig(null, 0, null, null);
 	private static final int POOL_SIZE = 5;
+
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
 
 	@Test
 	public void testSimple() {
@@ -107,6 +114,46 @@ public class TarantoolPooledClientSourceTest {
 		}
 		threadPool.shutdown();
 		threadPool.awaitTermination(1, TimeUnit.SECONDS);
+		assertEquals(0, latch.getCount());
+	}
+
+	@Test
+	public void testUseConnectionAfterClose() {
+		try (TarantoolClientSource pool = createPool(1)) {
+			TarantoolClient client = pool.getClient();
+			client.close();
+			thrown.expect(TarantoolException.class);
+			thrown.expectMessage("Connection already closed");
+			client.ping();
+		}
+	}
+
+	@Test
+	public void testPoolSize() {
+		Function<TarantoolConfig, TarantoolClient> clientFactory = new Function<TarantoolConfig, TarantoolClient>() {
+			boolean used = false;
+
+			@Override
+			public TarantoolClient apply(TarantoolConfig t) {
+				assertFalse(used);
+				used = true;
+				return new DummyTarantoolClient(t);
+			}
+		};
+
+		try (TarantoolClientSource pool = new TarantoolPooledClientSource(DUMMY_CONFIG, clientFactory, 1)) {
+			pool.getClient().close();
+			pool.getClient().close();
+		}
+	}
+
+	@Test
+	public void testSimpleConnectionReuse() {
+		try (TarantoolClientSource pool = createPool(1)) {
+			for (int i = 0; i < 10; i++) {
+				pool.getClient().close();
+			}
+		}
 	}
 
 	public static class DummyTarantoolClient implements TarantoolClient {
