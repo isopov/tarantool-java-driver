@@ -1,5 +1,7 @@
 package com.sopovs.moradanen.tarantool;
 
+import static com.sopovs.moradanen.tarantool.TarantoolPooledClientSource.CONNECTION_CLOSED;
+import static com.sopovs.moradanen.tarantool.TarantoolPooledClientSource.POOL_CLOSED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -118,17 +120,6 @@ public class TarantoolPooledClientSourceTest {
 	}
 
 	@Test
-	public void testUseConnectionAfterClose() {
-		try (TarantoolClientSource pool = createPool(1)) {
-			TarantoolClient client = pool.getClient();
-			client.close();
-			thrown.expect(TarantoolException.class);
-			thrown.expectMessage("Connection already closed");
-			client.ping();
-		}
-	}
-
-	@Test
 	public void testPoolSize() {
 		testReuseOneConnection(1);
 	}
@@ -163,6 +154,37 @@ public class TarantoolPooledClientSourceTest {
 				pool.getClient().close();
 			}
 		}
+	}
+
+	@Test
+	public void testUseConnectionAfterClose() {
+		try (TarantoolClientSource pool = createPool(1)) {
+			TarantoolClient client = pool.getClient();
+			client.close();
+			thrown.expect(TarantoolException.class);
+			thrown.expectMessage(CONNECTION_CLOSED);
+			client.ping();
+		}
+	}
+
+	@Test
+	public void testCloseWithWaiting() throws Exception {
+		TarantoolClientSource pool = createPool(0);
+		pool.close();
+		ExecutorService threadPool = Executors.newFixedThreadPool(1);
+		Future<TarantoolException> future = threadPool.submit(() -> {
+			try {
+				pool.getClient();
+				return null;
+			} catch (TarantoolException e) {
+				return e;
+			}
+		});
+		threadPool.shutdown();
+		threadPool.awaitTermination(1, TimeUnit.SECONDS);
+		thrown.expect(TarantoolException.class);
+		thrown.expectMessage(POOL_CLOSED);
+		throw future.get();
 	}
 
 	public static class DummyTarantoolClient implements TarantoolClient {

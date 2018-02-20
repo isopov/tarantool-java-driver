@@ -111,7 +111,7 @@ public class MessageBufferPackerBenchmark {
 	public static void main(String[] args) throws RunnerException {
 		Options opt = new OptionsBuilder()
 				.include(".*" + MessageBufferPackerBenchmark.class.getSimpleName() + ".*")
-//				.addProfiler(GCProfiler.class)
+				.addProfiler(GCProfiler.class)
 				.build();
 
 		new Runner(opt).run();

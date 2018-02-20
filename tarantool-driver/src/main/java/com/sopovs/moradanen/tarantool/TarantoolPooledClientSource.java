@@ -11,6 +11,9 @@ import com.sopovs.moradanen.tarantool.core.TarantoolException;
 //TODO lazy clients creation and closing clients that are stale for too long
 public class TarantoolPooledClientSource implements TarantoolClientSource {
 
+	static final String CONNECTION_CLOSED = "Connection already closed";
+	static final String POOL_CLOSED = "Pool is closed";
+
 	private boolean poolClosed = false;
 	private final ArrayDeque<TarantoolClient> pool;
 	private final int size;
@@ -49,7 +52,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 				}
 			}
 		}
-		throw new TarantoolException("Pool is closed");
+		throw new TarantoolException(POOL_CLOSED);
 	}
 
 	@Override
@@ -368,7 +371,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 
 		private void checkClosed() {
 			if (closed) {
-				throw new TarantoolException("Connection already closed");
+				throw new TarantoolException(CONNECTION_CLOSED);
 			}
 		}
 
