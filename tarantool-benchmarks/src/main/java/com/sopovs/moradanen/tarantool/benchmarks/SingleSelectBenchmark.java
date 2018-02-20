@@ -36,7 +36,7 @@ import org.tarantool.TarantoolConnection;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
-import com.sopovs.moradanen.tarantool.TarantoolSingleClientSource;
+import com.sopovs.moradanen.tarantool.TarantoolPooledClientSource;
 import com.sopovs.moradanen.tarantool.TarantoolTemplate;
 import com.sopovs.moradanen.tarantool.core.Iter;
 
@@ -92,11 +92,10 @@ public class SingleSelectBenchmark {
 		referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
 				new TarantoolClientConfig());
 		connection = new TarantoolConnection(null, null, new Socket("localhost", 3301));
-		TarantoolClient tarantoolClient = new TarantoolClientImpl("localhost", 3301);
-		clientSource = new TarantoolSingleClientSource(tarantoolClient);
+		clientSource = new TarantoolPooledClientSource("localhost", 3301, 1);
 
 		template = new TarantoolTemplate(clientSource);
-		jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(tarantoolClient);
+		jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(new TarantoolClientImpl("localhost", 3301));
 		setupData();
 
 	}
@@ -172,6 +171,7 @@ public class SingleSelectBenchmark {
 		connection.close();
 		referenceClient.close();
 		clientSource.close();
+		jdbcConnection.close();
 	}
 
 	public static void main(String[] args) throws RunnerException {
