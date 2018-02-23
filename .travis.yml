@@ -17,37 +17,51 @@ jobs:
     - jdk: oraclejdk8
       env: TARANTOOL_VERSION=1.6
       before_script:
-        - ./install_tarantool.sh
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_6/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
         - sudo cp example.lua /etc/tarantool/instances.available/
         - sudo ln -s /etc/tarantool/instances.available/example.lua /etc/tarantool/instances.enabled/example.lua
         - sudo service tarantool start
     - jdk: oraclejdk8
       env: TARANTOOL_VERSION=1.7
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_7/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
     - jdk: oraclejdk8
       env: TARANTOOL_VERSION=1.9
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_9/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
     - jdk: oraclejdk8
       env: TARANTOOL_VERSION=2.0
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/2_0/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
 
     #Tarantool 1.6 does not come with example.lua
     - jdk: oraclejdk9
       env: TARANTOOL_VERSION=1.6
       before_script:
-        - ./install_tarantool.sh
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_6/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
         - sudo cp example.lua /etc/tarantool/instances.available/
         - sudo ln -s /etc/tarantool/instances.available/example.lua /etc/tarantool/instances.enabled/example.lua
         - sudo service tarantool start
     - jdk: oraclejdk9
       env: TARANTOOL_VERSION=1.7
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_7/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
     - jdk: oraclejdk9
       env: TARANTOOL_VERSION=1.9
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/1_9/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
     - jdk: oraclejdk9
       env: TARANTOOL_VERSION=2.0
-      before_script: ./install_tarantool.sh
+      before_script:
+        - curl -s https://packagecloud.io/install/repositories/tarantool/2_0/script.deb.sh | sudo bash
+        - sudo apt-get -y install tarantool
 
 
 script: ./mvnw clean package
