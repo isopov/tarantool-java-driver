@@ -4,6 +4,7 @@ import java.io.Closeable;
 
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 import com.sopovs.moradanen.tarantool.core.Util;
 
@@ -106,7 +107,13 @@ public interface TarantoolClient extends Closeable {
 
 	void upsert(int space);
 
-	void change(Op op, int field, int arg);
+	void change(IntOp op, int field, int arg);
+	
+	void change(IntOp op, int field, long arg);
+	
+	void change(Op op, int field, String arg);
+	
+	void change(Op op, int field, byte[] arg);
 
 	void ping();
 

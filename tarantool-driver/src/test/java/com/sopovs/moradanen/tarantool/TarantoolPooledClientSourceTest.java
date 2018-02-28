@@ -23,6 +23,7 @@ import org.junit.rules.ExpectedException;
 
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 public class TarantoolPooledClientSourceTest {
@@ -264,7 +265,23 @@ public class TarantoolPooledClientSourceTest {
 		}
 
 		@Override
-		public void change(Op op, int field, int arg) {
+		public void change(IntOp op, int field, int arg) {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
+		public void change(IntOp op, int field, long arg) {
+			throw new TarantoolException("Not implemented!");
+		}
+
+		@Override
+		public void change(Op op, int field, String arg) {
+			throw new TarantoolException("Not implemented!");
+
+		}
+
+		@Override
+		public void change(Op op, int field, byte[] arg) {
 			throw new TarantoolException("Not implemented!");
 		}
 

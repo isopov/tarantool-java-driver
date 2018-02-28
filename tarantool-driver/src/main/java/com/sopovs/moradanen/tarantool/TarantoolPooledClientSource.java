@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 //TODO lazy clients creation and closing clients that are stale for too long
@@ -245,7 +246,42 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		}
 
 		@Override
-		public void change(Op op, int field, int arg) {
+		public void change(IntOp op, int field, int arg) {
+			checkClosed();
+			try {
+				client.change(op, field, arg);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+		}
+
+		
+		
+		
+		@Override
+		public void change(IntOp op, int field, long arg) {
+			checkClosed();
+			try {
+				client.change(op, field, arg);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+			
+		}
+
+		@Override
+		public void change(Op op, int field, String arg) {
+			checkClosed();
+			try {
+				client.change(op, field, arg);
+			} catch (TarantoolException e) {
+				throw closeOnException(e);
+			}
+			
+		}
+
+		@Override
+		public void change(Op op, int field, byte[] arg) {
 			checkClosed();
 			try {
 				client.change(op, field, arg);

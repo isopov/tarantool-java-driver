@@ -12,7 +12,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
@@ -84,14 +84,14 @@ public class TarantoolClientImplExceptionsTest {
 
 	@Test
 	public void testChangeWithoutUpdate() {
-		testException(PRE_CHANGE_EXCEPTION, c -> c.change(Op.AND, 1, 1));
+		testException(PRE_CHANGE_EXCEPTION, c -> c.change(IntOp.AND, 1, 1));
 	}
 
 	@Test
 	public void testChangeAfterInsert() {
 		testException(PRE_CHANGE_EXCEPTION, c -> {
 			c.insert(42);
-			c.change(Op.AND, 1, 1);
+			c.change(IntOp.AND, 1, 1);
 		});
 	}
 
@@ -99,7 +99,7 @@ public class TarantoolClientImplExceptionsTest {
 	public void testChangeAfterSelect() {
 		testException(PRE_CHANGE_EXCEPTION, c -> {
 			c.select(42, 1);
-			c.change(Op.AND, 1, 1);
+			c.change(IntOp.AND, 1, 1);
 		});
 	}
 

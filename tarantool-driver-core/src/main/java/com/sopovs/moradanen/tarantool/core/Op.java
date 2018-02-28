@@ -1,7 +1,7 @@
 package com.sopovs.moradanen.tarantool.core;
 
 public enum Op {
-	PLUS("+"), MINUS("-"), AND("&"), OR("|"), XOR("^"), DELETE("#");
+	DELETE("#"), INSERT("!"), ASSIGN("=");
 
 	private final String val;
 

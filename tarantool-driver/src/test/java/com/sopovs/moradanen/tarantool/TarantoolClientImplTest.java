@@ -7,8 +7,10 @@ import static org.junit.Assume.assumeTrue;
 
 import java.util.function.Consumer;
 
+import org.junit.Assert;
 import org.junit.Test;
 
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.Op;
 import com.sopovs.moradanen.tarantool.core.Util;
 
@@ -198,13 +200,97 @@ public class TarantoolClientImplTest {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
-			client.change(Op.PLUS, 1, 1);
+			client.change(IntOp.PLUS, 1, 1);
 			Result update = client.execute();
 			assertEquals(1, update.getSize());
 
 			update.consume();
 
 			testValue(client, 1);
+		}
+	}
+
+	@Test
+	public void testUpdateLong() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			insertInternal(client);
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			long val = Integer.MAX_VALUE;
+			val *= 3;
+			client.change(IntOp.PLUS, 1, val);
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+			update.consume();
+			testValue(client, val);
+		}
+	}
+
+	@Test
+	public void testUpdateIntAssign() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			insertInternal(client);
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			client.change(IntOp.ASSIGN, 1, 42);
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+
+			update.consume();
+
+			testValue(client, 42);
+		}
+	}
+
+	@Test
+	public void testUpdateBytes() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+
+			createTestSpace(client);
+
+			client.insert("javatest");
+			client.setInt(1);
+			client.setBytes(new byte[] { 0, 0, 0, 0 });
+			Result insert = client.execute();
+			assertEquals(1, insert.getSize());
+			insert.consume();
+
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			byte[] newBytes = new byte[] { 1, 1, 1, 1, 1 };
+			client.change(Op.ASSIGN, 1, newBytes);
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+
+			update.consume();
+
+			client.select("javatest", 0);
+			client.setInt(1);
+			Result select = client.execute();
+			assertEquals(1, select.getSize());
+			select.next();
+			assertEquals(1, select.getInt(0));
+			Assert.assertArrayEquals(newBytes, select.getBytes(1));
+		}
+	}
+
+	@Test
+	public void testUpdateString() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			insertInternal(client);
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			client.change(Op.ASSIGN, 2, "Barfoo");
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+
+			update.consume();
+
+			testValue(client, 0, "Barfoo");
 		}
 	}
 
@@ -248,18 +334,22 @@ public class TarantoolClientImplTest {
 		client.setInt(1);
 		client.setInt(1);
 		client.setString("Foobar");
-		client.change(Op.PLUS, 1, 1);
+		client.change(IntOp.PLUS, 1, 1);
 	}
 
-	private void testValue(TarantoolClient client, int value) {
+	private void testValue(TarantoolClient client, long value) {
+		testValue(client, value, "Foobar");
+	}
+
+	private void testValue(TarantoolClient client, long intValue, String strValue) {
 		client.select("javatest", 0);
 		client.setInt(1);
 		Result select = client.execute();
 		assertEquals(1, select.getSize());
 		select.next();
 		assertEquals(1, select.getInt(0));
-		assertEquals(value, select.getInt(1));
-		assertEquals("Foobar", select.getString(2));
+		assertEquals(intValue, select.getLong(1));
+		assertEquals(strValue, select.getString(2));
 	}
 
 	@Test

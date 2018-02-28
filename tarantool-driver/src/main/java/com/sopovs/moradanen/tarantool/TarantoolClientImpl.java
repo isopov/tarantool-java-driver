@@ -18,6 +18,7 @@ import org.msgpack.core.buffer.MessageBuffer;
 
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 import com.sopovs.moradanen.tarantool.core.Util;
@@ -619,23 +620,58 @@ public class TarantoolClientImpl implements TarantoolClient {
 		}
 	}
 
+	private void preChange(String op, int field) throws IOException {
+		if (currentQuery == UPDATE_KEY) {
+			writeQuery();
+			currentQuery = UPDATE_TUPLE;
+		} else if (currentQuery == UPSERT_TUPLE) {
+			writeQuery();
+			currentQuery = UPSERT_OPS;
+		} else if (currentQuery != UPDATE_TUPLE && currentQuery != UPSERT_OPS) {
+			throw new TarantoolException(PRE_CHANGE_EXCEPTION);
+		}
+		querySize++;
+		queryPacker.packArrayHeader(3);
+		queryPacker.packString(op);
+		queryPacker.packInt(field);
+	}
+
 	@Override
-	public void change(Op op, int field, int arg) {
+	public void change(IntOp op, int field, int arg) {
 		try {
-			if (currentQuery == UPDATE_KEY) {
-				writeQuery();
-				currentQuery = UPDATE_TUPLE;
-			} else if (currentQuery == UPSERT_TUPLE) {
-				writeQuery();
-				currentQuery = UPSERT_OPS;
-			} else if (currentQuery != UPDATE_TUPLE && currentQuery != UPSERT_OPS) {
-				throw new TarantoolException(PRE_CHANGE_EXCEPTION);
-			}
-			querySize++;
-			queryPacker.packArrayHeader(3);
-			queryPacker.packString(op.getVal());
-			queryPacker.packInt(field);
+			preChange(op.getVal(), field);
 			queryPacker.packInt(arg);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void change(IntOp op, int field, long arg) {
+		try {
+			preChange(op.getVal(), field);
+			queryPacker.packLong(arg);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void change(Op op, int field, String arg) {
+		try {
+			preChange(op.getVal(), field);
+			queryPacker.packString(arg);
+		} catch (IOException e) {
+			throw new TarantoolException(e);
+		}
+	}
+
+	@Override
+	public void change(Op op, int field, byte[] bytes) {
+		try {
+			preChange(op.getVal(), field);
+			queryPacker.packBinaryHeader(bytes.length);
+			queryPacker.writePayload(bytes);
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
