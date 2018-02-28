@@ -295,6 +295,22 @@ public class TarantoolClientImplTest {
 	}
 
 	@Test
+	public void testUpdateIntString() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+			insertInternal(client);
+			client.update(client.space("javatest"), 0);
+			client.setInt(1);
+			client.change(IntOp.PLUS, 1, 1);
+			client.change(Op.ASSIGN, 2, "Barfoo");
+			Result update = client.execute();
+			assertEquals(1, update.getSize());
+			update.consume();
+			testValue(client, 1, "Barfoo");
+		}
+	}
+
+	@Test
 	public void testUpsert() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
