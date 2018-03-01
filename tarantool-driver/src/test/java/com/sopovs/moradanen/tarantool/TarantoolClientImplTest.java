@@ -135,6 +135,42 @@ public class TarantoolClientImplTest {
 		}
 	}
 
+	@Test
+	public void testDeleteComposite() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+
+			client.evalFully("box.schema.space.create('javatest')").consume();
+			client.evalFully(
+					"box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num', 2, 'num'}})")
+					.consume();
+
+			client.insert("javatest");
+			client.setInt(1);
+			client.setInt(0);
+			client.execute().consume();
+
+			client.insert("javatest");
+			client.setInt(1);
+			client.setInt(1);
+			client.execute().consume();
+
+			client.delete("javatest");
+			client.setInt(1);
+			client.setInt(1);
+			Result delete = client.execute();
+			assertEquals(1, delete.getSize());
+			delete.consume();
+
+			client.selectAll("javatest");
+			Result select = client.execute();
+			assertEquals(1, select.getSize());
+			select.next();
+			assertEquals(1, select.getInt(0));
+			assertEquals(0, select.getInt(1));
+		}
+	}
+
 	private static void insertInternal(TarantoolClient client) {
 		createTestSpace(client);
 

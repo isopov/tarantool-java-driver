@@ -17,12 +17,12 @@ public class TarantoolTemplate {
 		}
 	}
 
-	public int space(String space){
+	public int space(String space) {
 		try (TarantoolClient client = clientSource.getClient()) {
 			return client.space(space);
 		}
 	}
-	
+
 	public <T> T selectAll(int space, ResultExtractor<T> extractor) {
 		try (TarantoolClient client = clientSource.getClient()) {
 			client.selectAll(space);
