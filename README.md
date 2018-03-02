@@ -4,8 +4,8 @@ This connector is not used anywhere in production alternative to official Tarant
 
 Pros (why this connector is better):
 * It has tests (oficial driver has none and do not want any https://github.com/tarantool/tarantool-java/pull/25 )
-* Tests are run regularly (on every push) on 3 Tarantool versions - 1.6, 1.7, 1.8
-* It uses https://github.com/msgpack/msgpack-java instead of custom Msgpack implementation. This leads to at least some level of confidence, and in more memory-efficient msgpack processing (https://github.com/isopov/tarantool-java-driver/blob/master/tarantool-benchmarks/src/main/java/com/sopovs/moradanen/tarantool/benchmarks/SelectBenchmark.java)
+* Tests are run regularly (on every push) on 4 Tarantool versions - 1.6, 1.7, 1.9 and 2.0
+* It uses https://github.com/msgpack/msgpack-java instead of custom Msgpack implementation. This leads to at least some level of confidence, and in more memory-efficient msgpack processing (https://github.com/isopov/tarantool-java-driver/blob/master/tarantool-benchmarks/src/main/java/com/sopovs/moradanen/tarantool/benchmarks/SingleSelectBenchmark.java)
 * API is more strict - no need for casts
 
 Cons (why oficial connector is better)
@@ -15,4 +15,5 @@ Cons (why oficial connector is better)
 * Having essentially 1 or 2 public methods API may be considered simplier
 * It is deployed to Maven Central
 * API is certainly more stable - this driver may change in any not foreseeable way 
+* Java 6 support
 
