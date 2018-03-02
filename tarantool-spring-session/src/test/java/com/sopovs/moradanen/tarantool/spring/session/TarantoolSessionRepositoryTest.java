@@ -77,7 +77,7 @@ public class TarantoolSessionRepositoryTest {
 		sessionRepository.save(session);
 		TarantoolSession got = sessionRepository.findById(session.getId());
 		assertEquals(session.getId(), got.getId());
-		assertEquals(session.getCreationTime(), got.getCreationTime());
+		assertEquals(session.getCreationTime().toEpochMilli(), got.getCreationTime().toEpochMilli());
 		assertEquals(session.getAttributeNames(), got.getAttributeNames());
 	}
 
