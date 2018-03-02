@@ -9,20 +9,14 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>tarantool-driver</artifactId>
+	<artifactId>tarantool-driver-testutil</artifactId>
 	<packaging>jar</packaging>
 
 	<dependencies>
 		<dependency>
-			<groupId>com.sopovs.moradanen</groupId>
-			<artifactId>tarantool-driver-core</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sopovs.moradanen</groupId>
-			<artifactId>tarantool-driver-testutil</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
+			<groupId>org.msgpack</groupId>
+			<artifactId>msgpack-core</artifactId>
+			<version>0.8.14</version>
 		</dependency>
 	</dependencies>
 </project>

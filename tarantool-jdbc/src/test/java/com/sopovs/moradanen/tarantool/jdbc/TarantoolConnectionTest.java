@@ -1,5 +1,6 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
+import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -26,10 +27,6 @@ public class TarantoolConnectionTest {
 		assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
 	}
 
-	public static String getEnvTarantoolVersion() {
-		String version = System.getenv("TARANTOOL_VERSION");
-		return version == null ? "2.0" : version;
-	}
 
 	private void testOneSelect(String value, Consumer<TarantoolResultSet> resConsumer) throws SQLException {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");

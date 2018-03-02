@@ -18,5 +18,11 @@
 			<artifactId>tarantool-driver</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.sopovs.moradanen</groupId>
+			<artifactId>tarantool-driver-testutil</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

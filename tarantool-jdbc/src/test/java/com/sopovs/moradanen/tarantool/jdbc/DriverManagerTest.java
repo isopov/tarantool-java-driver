@@ -1,6 +1,6 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
-import static com.sopovs.moradanen.tarantool.jdbc.TarantoolConnectionTest.getEnvTarantoolVersion;
+import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 

@@ -2,12 +2,14 @@ package com.sopovs.moradanen.tarantool.spring.session;
 
 import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.DEFAULT_ATTRIBUTES_SPACE_NAME;
 import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.DEFAULT_SPACE_NAME;
+import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -25,6 +27,7 @@ public class TarantoolSessionRepositoryTest {
 
 	@Before
 	public void setUp() {
+		Assume.assumeFalse(getEnvTarantoolVersion().startsWith("1.6"));
 		clientSource = new TarantoolPooledClientSource("localhost", 3301, 1);
 		sessionRepository = new TarantoolSessionRepository(clientSource);
 		sessionRepository.createSpaces();

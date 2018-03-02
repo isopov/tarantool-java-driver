@@ -1,5 +1,6 @@
 package com.sopovs.moradanen.tarantool;
 
+import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -412,10 +413,6 @@ public class TarantoolClientImplTest {
 		}
 	}
 
-	private static String getEnvTarantoolVersion() {
-		String version = System.getenv("TARANTOOL_VERSION");
-		return version == null ? "2.0" : version;
-	}
 
 	@Test
 	public void testExecuteCreateTable() {

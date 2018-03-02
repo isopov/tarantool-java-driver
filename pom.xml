@@ -22,6 +22,7 @@
 	</properties>
 
 	<modules>
+		<module>tarantool-driver-testutil</module>
 		<module>tarantool-driver-core</module>
 		<module>tarantool-driver</module>
 		<module>tarantool-jdbc</module>
