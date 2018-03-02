@@ -37,6 +37,9 @@ public class TarantoolSessionRepositoryTest {
 
 	@After
 	public void tearDown() {
+		if (clientSource == null) {
+			return;
+		}
 		try (TarantoolClient client = clientSource.getClient()) {
 			client.evalFully("box.space." + DEFAULT_SPACE_NAME + ":drop()").consume();
 			client.evalFully("box.space." + DEFAULT_ATTRIBUTES_SPACE_NAME + ":drop()").consume();
