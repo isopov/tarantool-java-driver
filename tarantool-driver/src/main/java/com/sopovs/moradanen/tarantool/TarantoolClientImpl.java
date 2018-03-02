@@ -584,7 +584,11 @@ public class TarantoolClientImpl implements TarantoolClient {
 		preSetCheck();
 		try {
 			querySize++;
-			queryPacker.packString(val);
+			if (val == null) {
+				queryPacker.packNil();
+			} else {
+				queryPacker.packString(val);
+			}
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}
@@ -660,7 +664,11 @@ public class TarantoolClientImpl implements TarantoolClient {
 	public void change(Op op, int field, String arg) {
 		try {
 			preChange(op.getVal(), field);
-			queryPacker.packString(arg);
+			if (arg == null) {
+				queryPacker.packNil();
+			} else {
+				queryPacker.packString(arg);
+			}
 		} catch (IOException e) {
 			throw new TarantoolException(e);
 		}

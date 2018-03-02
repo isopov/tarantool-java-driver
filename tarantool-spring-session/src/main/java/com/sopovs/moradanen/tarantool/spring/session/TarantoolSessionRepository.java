@@ -31,8 +31,13 @@ import com.sopovs.moradanen.tarantool.core.Op;
 public class TarantoolSessionRepository implements
 		FindByIndexNameSessionRepository<TarantoolSessionRepository.TarantoolSession> {
 
-	public static final String DEFAULT_SPACE_NAME = "SPRING_SESSION";
-	public static final String DEFAULT_ATTRIBUTES_SPACE_NAME = DEFAULT_SPACE_NAME + "_ATTRS";
+	private static final int SPACE_PRIMARY_INDEX = 0;
+	private static final int SPACE_ID_INDEX = 1;
+	private static final int SPACE_NAME_INDEX = 2;
+	private static final int SPACE_EXPIRY_INDEX = 3;
+	private static final int ATTR_PRIMARY_INDEX = 0;
+	public static final String DEFAULT_SPACE_NAME = "spring_session";
+	public static final String DEFAULT_ATTRIBUTES_SPACE_NAME = DEFAULT_SPACE_NAME + "_attrs";
 
 	private static final String SPRING_SECURITY_CONTEXT = "SPRING_SECURITY_CONTEXT";
 
@@ -52,7 +57,7 @@ public class TarantoolSessionRepository implements
 	 */
 	private Integer defaultMaxInactiveInterval;
 
-	private ConversionService conversionService;
+	private ConversionService conversionService = createDefaultConversionService();
 
 	public TarantoolSessionRepository(TarantoolClientSource clientSource) {
 		Assert.notNull(clientSource, "TarantoolClientSource must not be null");
@@ -155,7 +160,7 @@ public class TarantoolSessionRepository implements
 				}
 			} else {
 				if (session.isChanged()) {
-					client.update(space, 0);
+					client.update(space, SPACE_PRIMARY_INDEX);
 					client.setString(session.primaryKey);
 					client.change(Op.ASSIGN, 2, session.getId());
 					client.change(IntOp.ASSIGN, 3, session.getLastAccessedTime().toEpochMilli());
@@ -169,7 +174,7 @@ public class TarantoolSessionRepository implements
 				if (!delta.isEmpty()) {
 					for (final Map.Entry<String, Object> entry : delta.entrySet()) {
 						if (entry.getValue() == null) {
-							client.delete(attributesSpace, 0);
+							client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
 							client.setString(session.primaryKey);
 							client.setString(entry.getKey());
 						} else {
@@ -194,12 +199,13 @@ public class TarantoolSessionRepository implements
 			int space = getSpace(client);
 			int attributesSpace = getAttributesSpace(client);
 
-			client.select(space, 0);
+			client.select(space, SPACE_ID_INDEX);
 			client.setString(id);
 			Result result = client.execute();
 			if (result.getSize() == 0) {
 				return null;
 			}
+			assert result.getSize() == 1;
 			result.next();
 
 			MapSession delegate = new MapSession(id);
@@ -210,9 +216,13 @@ public class TarantoolSessionRepository implements
 			delegate.setMaxInactiveInterval(Duration.ofSeconds(result.getLong(4)));
 			TarantoolSession session = new TarantoolSession(primaryKey, delegate);
 
-			// TODO attributes
+			client.select(attributesSpace, ATTR_PRIMARY_INDEX);
+			client.setString(primaryKey);
+			result = client.execute();
+			while (result.next()) {
+				session.setAttribute(result.getString(1), deserialize(result.getBytes(2)));
+			}
 			return session;
-
 		}
 	}
 
@@ -405,4 +415,39 @@ public class TarantoolSessionRepository implements
 		}
 
 	}
+
+	public void createSpaces() {
+		try (TarantoolClient client = clientSource.getClient()) {
+			createSpaces(client, spaceName, attributesSpaceName);
+		}
+	}
+
+	public static void createSpaces(TarantoolClient client) {
+		createSpaces(client, DEFAULT_SPACE_NAME, DEFAULT_ATTRIBUTES_SPACE_NAME);
+
+	}
+
+	public static void createSpaces(TarantoolClient client, String spaceName, String attributesSpaceName) {
+		client.evalFully("box.schema.space.create('" + spaceName + "')").consume();
+		// TODO format for field count and types
+		// SPACE_PRIMARY_INDEX
+		client.evalFully("box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {1, 'string'}})")
+				.consume();
+		// SPACE_ID_INDEX
+		client.evalFully("box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {2, 'string'}})")
+				.consume();
+		// SPACE_NAME_INDEX
+		client.evalFully("box.space." + spaceName
+				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}})")
+				.consume();
+		// SPACE_EXPIRY_INDEX
+		client.evalFully("box.space." + spaceName + ":create_index('expiry', {type = 'hash', parts = {5, 'num'}})")
+				.consume();
+
+		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
+		client.evalFully("box.space." + attributesSpaceName
+				+ ":create_index('primary', {type = 'tree', parts = {1, 'string', 2, 'string'}})")
+				.consume();
+	}
+
 }
