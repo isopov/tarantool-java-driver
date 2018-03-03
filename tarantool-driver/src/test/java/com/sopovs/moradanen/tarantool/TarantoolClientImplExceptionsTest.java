@@ -4,7 +4,10 @@ import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.EXECUTE_ABSENT_
 import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_ACTION_EXCEPTION;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_CHANGE_EXCEPTION;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.PRE_SET_EXCEPTION;
+import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.createTestSpace;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.testAuth;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.function.Consumer;
 
@@ -16,6 +19,7 @@ import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
+//TODO - some sort of parameterized tests (maybe with junit5)
 public class TarantoolClientImplExceptionsTest {
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
@@ -131,6 +135,183 @@ public class TarantoolClientImplExceptionsTest {
 	@Test
 	public void testDoubleUpsertWithoutExecute() {
 		testPreActionCheck(c -> c.upsert(42));
+	}
+
+	@Test
+	public void testGetIntNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getInt(1);
+		});
+	}
+
+	@Test
+	public void testGetIntString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getInt(1);
+		});
+	}
+
+	@Test
+	public void testGetFloatNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getFloat(1);
+		});
+	}
+
+	@Test
+	public void testGetFloatString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getFloat(1);
+		});
+	}
+
+	@Test
+	public void testGetLongNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getLong(1);
+		});
+	}
+
+	@Test
+	public void testGetLongString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getLong(1);
+		});
+	}
+
+	@Test
+	public void testGetDoubleNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getDouble(1);
+		});
+	}
+
+	@Test
+	public void testGetDoubleString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getDouble(1);
+		});
+	}
+
+	@Test
+	public void testGetBooleanNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getBoolean(1);
+		});
+	}
+
+	@Test
+	public void testGetBooleanString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getBoolean(1);
+		});
+	}
+
+	@Test
+	public void testGetStringNull() throws Exception {
+		testSelectNull(result -> {
+			assertNull(result.getString(1));
+		});
+	}
+
+	@Test
+	public void testGetStringDouble() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectDouble(result -> {
+			assertNull(result.getString(1));
+		});
+	}
+
+	@Test
+	public void testGetBytesNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getBytes(1);
+		});
+	}
+
+	@Test
+	public void testGetBytesString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getBytes(1);
+		});
+	}
+
+	@Test
+	public void testGetByteBufferNull() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectNull(result -> {
+			result.getByteBuffer(1);
+		});
+	}
+
+	@Test
+	public void testGetByteBufferString() throws Exception {
+		thrown.expect(TarantoolException.class);
+		// TODO message
+		testSelectString(result -> {
+			result.getByteBuffer(1);
+		});
+	}
+
+	private static void testSelectString(Consumer<Result> getter) throws Exception {
+		testSetAndSelect(client -> client.setString("foobar"), getter);
+	}
+
+	private static void testSelectNull(Consumer<Result> getter) throws Exception {
+		testSetAndSelect(client -> client.setNull(), getter);
+	}
+
+	private static void testSelectDouble(Consumer<Result> getter) throws Exception {
+		testSetAndSelect(client -> client.setDouble(42D), getter);
+	}
+
+	private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter) throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
+
+			createTestSpace(client);
+
+			client.insert("javatest");
+			client.setInt(1);
+			setter.accept(client);
+
+			Result insert = client.execute();
+			assertEquals(1, insert.getSize());
+			insert.consume();
+
+			client.select(client.space("javatest"), 0);
+			client.setInt(1);
+			Result first = client.execute();
+			assertEquals(1, first.getSize());
+			first.next();
+			getter.accept(first);
+		}
 	}
 
 	private void testException(String message, Consumer<TarantoolClient> setter) {

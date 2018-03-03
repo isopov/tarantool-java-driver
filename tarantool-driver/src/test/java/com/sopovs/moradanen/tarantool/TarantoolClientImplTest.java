@@ -113,7 +113,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testInsert() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 		}
 	}
@@ -121,7 +121,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testDelete() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.delete("javatest");
 			client.setInt(1);
@@ -139,12 +139,11 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testDeleteComposite() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 
-			client.evalFully("box.schema.space.create('javatest')").consume();
+			client.evalFully("box.schema.space.create('javatest')");
 			client.evalFully(
-					"box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num', 2, 'num'}})")
-					.consume();
+					"box.space.javatest:create_index('primary', {type = 'hash', parts = {{1, 'num'}, {2, 'num'}}})");
 
 			client.insert("javatest");
 			client.setInt(1);
@@ -199,15 +198,15 @@ public class TarantoolClientImplTest {
 		assertEquals("Foobar", select.getString(2));
 	}
 
-	private static void createTestSpace(TarantoolClient client) {
-		client.evalFully("box.schema.space.create('javatest')").consume();
-		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})").consume();
+	static void createTestSpace(TarantoolClient client) {
+		client.evalFully("box.schema.space.create('javatest')");
+		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {{1, 'num'}}})");
 	}
 
 	@Test
 	public void testInsertBatch() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			createTestSpace(client);
 			int space = client.space("javatest");
 			for (int i = 0; i < 10; i++) {
@@ -226,14 +225,13 @@ public class TarantoolClientImplTest {
 				assertEquals(1, first.getSize());
 				first.consume();
 			}
-
 		}
 	}
 
 	@Test
 	public void testUpdate() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
@@ -250,7 +248,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpdateLong() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
@@ -267,7 +265,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpdateIntAssign() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
@@ -284,7 +282,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpdateBytes() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 
 			createTestSpace(client);
 
@@ -317,7 +315,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpdateString() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
@@ -334,7 +332,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpdateIntString() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			insertInternal(client);
 			client.update(client.space("javatest"), 0);
 			client.setInt(1);
@@ -350,7 +348,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpsert() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			createTestSpace(client);
 
 			testUpsertStep(client, 1);
@@ -362,7 +360,7 @@ public class TarantoolClientImplTest {
 	@Test
 	public void testUpsertBatch() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
-				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()").consume()) {
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
 			createTestSpace(client);
 			for (int i = 0; i < 10; i++) {
 				testUpsertBatchStep(client);
@@ -412,7 +410,6 @@ public class TarantoolClientImplTest {
 			assertTrue(client.getVersion().startsWith(majorMinor));
 		}
 	}
-
 
 	@Test
 	public void testExecuteCreateTable() {
