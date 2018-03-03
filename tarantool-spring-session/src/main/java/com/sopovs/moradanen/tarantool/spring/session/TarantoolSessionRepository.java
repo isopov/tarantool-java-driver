@@ -162,11 +162,11 @@ public class TarantoolSessionRepository implements
 				if (session.isChanged()) {
 					client.update(space, SPACE_PRIMARY_INDEX);
 					client.setString(session.primaryKey);
-					client.change(Op.ASSIGN, 2, session.getId());
+					client.change(Op.ASSIGN, 1, session.getId());
 					client.change(IntOp.ASSIGN, 3, session.getLastAccessedTime().toEpochMilli());
-					client.change(IntOp.ASSIGN, 4, (int) session.getMaxInactiveInterval().getSeconds());
-					client.change(IntOp.ASSIGN, 5, session.getExpiryTime().toEpochMilli());
-					client.change(Op.ASSIGN, 6, session.getPrincipalName());
+//					client.change(IntOp.ASSIGN, 3, (int) session.getMaxInactiveInterval().getSeconds());
+					client.change(IntOp.ASSIGN, 4, session.getExpiryTime().toEpochMilli());
+					client.change(Op.ASSIGN, 5, session.getPrincipalName());
 					client.execute().consume();
 				}
 
@@ -212,8 +212,6 @@ public class TarantoolSessionRepository implements
 			String primaryKey = result.getString(0);
 			delegate.setCreationTime(Instant.ofEpochMilli(result.getLong(2)));
 			delegate.setLastAccessedTime(Instant.ofEpochMilli(result.getLong(3)));
-			// TODO ?
-			delegate.setMaxInactiveInterval(Duration.ofSeconds(result.getLong(4)));
 			TarantoolSession session = new TarantoolSession(primaryKey, delegate);
 
 			client.select(attributesSpace, ATTR_PRIMARY_INDEX);
@@ -431,22 +429,22 @@ public class TarantoolSessionRepository implements
 		client.evalFully("box.schema.space.create('" + spaceName + "')").consume();
 		// TODO format for field count and types
 		// SPACE_PRIMARY_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {1, 'string'}})")
+		client.evalFully("box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {{1, 'string'}}})")
 				.consume();
 		// SPACE_ID_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {2, 'string'}})")
+		client.evalFully("box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {{2, 'string'}}})")
 				.consume();
 		// SPACE_NAME_INDEX
 		client.evalFully("box.space." + spaceName
 				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}})")
 				.consume();
 		// SPACE_EXPIRY_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('expiry', {type = 'hash', parts = {5, 'num'}})")
+		client.evalFully("box.space." + spaceName + ":create_index('expiry', {type = 'hash', parts = {{5, 'num'}}})")
 				.consume();
 
 		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
 		client.evalFully("box.space." + attributesSpaceName
-				+ ":create_index('primary', {type = 'tree', parts = {1, 'string', 2, 'string'}})")
+				+ ":create_index('primary', {type = 'tree', parts = {{1, 'string'}, {2, 'string'}}})")
 				.consume();
 	}
 

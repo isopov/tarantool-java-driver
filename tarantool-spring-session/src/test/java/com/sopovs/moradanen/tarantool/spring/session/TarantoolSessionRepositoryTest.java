@@ -11,7 +11,6 @@ import static org.springframework.session.FindByIndexNameSessionRepository.PRINC
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.sopovs.moradanen.tarantool.TarantoolClient;
@@ -70,7 +69,6 @@ public class TarantoolSessionRepositoryTest {
 		sessionRepository.save(session);
 	}
 
-	@Ignore // TODO
 	@Test
 	public void testSaveChangedSessionId() {
 		sessionRepository.save(session);
@@ -81,13 +79,18 @@ public class TarantoolSessionRepositoryTest {
 	@Test
 	public void testFindById() {
 		sessionRepository.save(session);
-		TarantoolSession got = sessionRepository.findById(session.getId());
-		assertEquals(session.getId(), got.getId());
-		assertEquals(session.getCreationTime().toEpochMilli(), got.getCreationTime().toEpochMilli());
-		assertEquals(session.getAttributeNames(), got.getAttributeNames());
+		assertSessionEquals(sessionRepository.findById(session.getId()));
 	}
 
-	@Ignore // TODO
+	@Test
+	public void testFindByIdWithPrincipalName() {
+		testSaveWithPrincipalName();
+		TarantoolSession got = sessionRepository.findById(session.getId());
+		assertSessionEquals(got);
+		assertEquals("foobar", got.getPrincipalName());
+		assertEquals(1, got.getAttributeNames().size());
+	}
+
 	@Test
 	public void testFindByChangedId() {
 		sessionRepository.save(session);
@@ -96,11 +99,17 @@ public class TarantoolSessionRepositoryTest {
 		sessionRepository.save(session);
 
 		assertNull(sessionRepository.findById(prevId));
+		assertSessionEquals(sessionRepository.findById(session.getId()));
+	}
 
-		TarantoolSession got = sessionRepository.findById(session.getId());
+	private void assertSessionEquals(TarantoolSession got) {
 		assertEquals(session.getId(), got.getId());
-		assertEquals(session.getCreationTime(), got.getCreationTime());
+		assertEquals(session.getLastAccessedTime().toEpochMilli(), got.getLastAccessedTime().toEpochMilli());
+		assertEquals(session.getMaxInactiveInterval(), got.getMaxInactiveInterval());
+		assertEquals(session.getExpiryTime().toEpochMilli(), got.getExpiryTime().toEpochMilli());
+		assertEquals(session.getCreationTime().toEpochMilli(), got.getCreationTime().toEpochMilli());
 		assertEquals(session.getAttributeNames(), got.getAttributeNames());
+		assertEquals(session.getPrincipalName(), got.getPrincipalName());
 	}
 
 }
