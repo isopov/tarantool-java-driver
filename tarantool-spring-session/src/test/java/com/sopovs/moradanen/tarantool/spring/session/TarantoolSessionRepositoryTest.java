@@ -1,5 +1,6 @@
 package com.sopovs.moradanen.tarantool.spring.session;
 
+import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.ATTR_PRIMARY_INDEX;
 import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.DEFAULT_ATTRIBUTES_SPACE_NAME;
 import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.DEFAULT_SPACE_NAME;
 import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
@@ -8,10 +9,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME;
 
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.session.FindByIndexNameSessionRepository;
 
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
@@ -92,6 +96,45 @@ public class TarantoolSessionRepositoryTest {
 	}
 
 	@Test
+	public void testDeleteByIdNotSaved() {
+		sessionRepository.deleteById(session.getId());
+	}
+
+	@Test
+	public void testDeleteById() {
+		sessionRepository.save(session);
+		sessionRepository.deleteById(session.getId());
+		assertNull(sessionRepository.findById(session.getId()));
+	}
+
+	@Test
+	public void testDeleteByIdWIthAttribute() {
+		session.setAttribute("foo", "bar");
+		sessionRepository.save(session);
+		sessionRepository.deleteById(session.getId());
+		assertNull(sessionRepository.findById(session.getId()));
+
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.select(sessionRepository.getAttributesSpace(client), ATTR_PRIMARY_INDEX);
+			client.setString(session.primaryKey);
+			assertEquals(0, client.execute().getSize());
+		}
+	}
+
+	@Test
+	public void testRemoveAttribute() {
+		session.setAttribute("foo", "bar");
+		sessionRepository.save(session);
+		assertSessionEquals(sessionRepository.findById(session.getId()));
+
+		session.removeAttribute("foo");
+		sessionRepository.save(session);
+		TarantoolSession got = sessionRepository.findById(session.getId());
+		assertSessionEquals(got);
+		assertEquals(0, got.getAttributeNames().size());
+	}
+
+	@Test
 	public void testFindByChangedId() {
 		sessionRepository.save(session);
 		String prevId = session.getId();
@@ -103,13 +146,42 @@ public class TarantoolSessionRepositoryTest {
 	}
 
 	private void assertSessionEquals(TarantoolSession got) {
-		assertEquals(session.getId(), got.getId());
-		assertEquals(session.getLastAccessedTime().toEpochMilli(), got.getLastAccessedTime().toEpochMilli());
-		assertEquals(session.getMaxInactiveInterval(), got.getMaxInactiveInterval());
-		assertEquals(session.getExpiryTime().toEpochMilli(), got.getExpiryTime().toEpochMilli());
-		assertEquals(session.getCreationTime().toEpochMilli(), got.getCreationTime().toEpochMilli());
-		assertEquals(session.getAttributeNames(), got.getAttributeNames());
-		assertEquals(session.getPrincipalName(), got.getPrincipalName());
+		assertSessionEquals(session, got);
+	}
+
+	private void assertSessionEquals(TarantoolSession expected, TarantoolSession actual) {
+		assertEquals(expected.primaryKey, actual.primaryKey);
+		assertEquals(expected.getId(), actual.getId());
+		assertEquals(expected.getLastAccessedTime().toEpochMilli(), actual.getLastAccessedTime().toEpochMilli());
+		assertEquals(expected.getMaxInactiveInterval(), actual.getMaxInactiveInterval());
+		assertEquals(expected.getExpiryTime().toEpochMilli(), actual.getExpiryTime().toEpochMilli());
+		assertEquals(expected.getCreationTime().toEpochMilli(), actual.getCreationTime().toEpochMilli());
+		assertEquals(expected.getAttributeNames(), actual.getAttributeNames());
+		assertEquals(expected.getPrincipalName(), actual.getPrincipalName());
+	}
+
+	@Test
+	public void testFindByIndexNameAndIndexValue() {
+		testSaveWithPrincipalName();
+		Map<String, TarantoolSession> result = sessionRepository.findByIndexNameAndIndexValue(PRINCIPAL_NAME_INDEX_NAME,
+				"foobar");
+		assertEquals(1, result.size());
+		assertSessionEquals(result.get(session.getId()));
+	}
+
+	@Test
+	public void testFind2ByIndexNameAndIndexValue() {
+		testSaveWithPrincipalName();
+
+		TarantoolSession session2 = sessionRepository.createSession();
+		session2.setAttribute(PRINCIPAL_NAME_INDEX_NAME, "foobar");
+		sessionRepository.save(session2);
+
+		Map<String, TarantoolSession> result = sessionRepository.findByIndexNameAndIndexValue(PRINCIPAL_NAME_INDEX_NAME,
+				"foobar");
+		assertEquals(2, result.size());
+		assertSessionEquals(result.get(session.getId()));
+		assertSessionEquals(session2, result.get(session2.getId()));
 	}
 
 }

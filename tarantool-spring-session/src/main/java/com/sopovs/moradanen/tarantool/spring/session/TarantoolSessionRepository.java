@@ -28,14 +28,15 @@ import com.sopovs.moradanen.tarantool.TarantoolClientSource;
 import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.Op;
 
-public class TarantoolSessionRepository implements
-		FindByIndexNameSessionRepository<TarantoolSessionRepository.TarantoolSession> {
+public class TarantoolSessionRepository
+		implements FindByIndexNameSessionRepository<TarantoolSessionRepository.TarantoolSession> {
 
 	private static final int SPACE_PRIMARY_INDEX = 0;
 	private static final int SPACE_ID_INDEX = 1;
 	private static final int SPACE_NAME_INDEX = 2;
 	private static final int SPACE_EXPIRY_INDEX = 3;
-	private static final int ATTR_PRIMARY_INDEX = 0;
+	// visible for testing
+	static final int ATTR_PRIMARY_INDEX = 0;
 	public static final String DEFAULT_SPACE_NAME = "spring_session";
 	public static final String DEFAULT_ATTRIBUTES_SPACE_NAME = DEFAULT_SPACE_NAME + "_attrs";
 
@@ -91,7 +92,8 @@ public class TarantoolSessionRepository implements
 		return space;
 	}
 
-	private int getAttributesSpace(TarantoolClient client) {
+	// visible for testing
+	int getAttributesSpace(TarantoolClient client) {
 		if (attributesSpace == null) {
 			attributesSpace = client.space(attributesSpaceName);
 		}
@@ -99,9 +101,9 @@ public class TarantoolSessionRepository implements
 	}
 
 	/**
-	 * Set the maximum inactive interval in seconds between requests before
-	 * newly created sessions will be invalidated. A negative time indicates
-	 * that the session will never timeout. The default is 1800 (30 minutes).
+	 * Set the maximum inactive interval in seconds between requests before newly
+	 * created sessions will be invalidated. A negative time indicates that the
+	 * session will never timeout. The default is 1800 (30 minutes).
 	 * 
 	 * @param defaultMaxInactiveInterval
 	 *            the maximum inactive interval in seconds
@@ -164,7 +166,6 @@ public class TarantoolSessionRepository implements
 					client.setString(session.primaryKey);
 					client.change(Op.ASSIGN, 1, session.getId());
 					client.change(IntOp.ASSIGN, 3, session.getLastAccessedTime().toEpochMilli());
-//					client.change(IntOp.ASSIGN, 3, (int) session.getMaxInactiveInterval().getSeconds());
 					client.change(IntOp.ASSIGN, 4, session.getExpiryTime().toEpochMilli());
 					client.change(Op.ASSIGN, 5, session.getPrincipalName());
 					client.execute().consume();
@@ -196,49 +197,95 @@ public class TarantoolSessionRepository implements
 	@Override
 	public TarantoolSession findById(final String id) {
 		try (TarantoolClient client = clientSource.getClient()) {
-			int space = getSpace(client);
-			int attributesSpace = getAttributesSpace(client);
-
-			client.select(space, SPACE_ID_INDEX);
-			client.setString(id);
-			Result result = client.execute();
-			if (result.getSize() == 0) {
-				return null;
-			}
-			assert result.getSize() == 1;
-			result.next();
-
-			MapSession delegate = new MapSession(id);
-			String primaryKey = result.getString(0);
-			delegate.setCreationTime(Instant.ofEpochMilli(result.getLong(2)));
-			delegate.setLastAccessedTime(Instant.ofEpochMilli(result.getLong(3)));
-			TarantoolSession session = new TarantoolSession(primaryKey, delegate);
-
-			client.select(attributesSpace, ATTR_PRIMARY_INDEX);
-			client.setString(primaryKey);
-			result = client.execute();
-			while (result.next()) {
-				session.setAttribute(result.getString(1), deserialize(result.getBytes(2)));
-			}
-			return session;
+			return findById(id, client);
 		}
 	}
 
 	@Override
 	public void deleteById(final String id) {
+		// TODO lua-procedure
+		try (TarantoolClient client = clientSource.getClient()) {
+			int space = getSpace(client);
+			TarantoolSession session = findById(id, client);
+			if (session == null) {
+				return;
+			}
+			client.delete(space, SPACE_PRIMARY_INDEX);
+			client.setString(session.primaryKey);
+			Set<String> attributeNames = session.getAttributeNames();
+			if (attributeNames.isEmpty()) {
+				client.execute().consume();
+			} else {
+				client.addBatch();
 
-		// TODO
+				int attributesSpace = getAttributesSpace(client);
+				for (String attribute : attributeNames) {
+					client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
+					client.setString(session.primaryKey);
+					client.setString(attribute);
+					client.addBatch();
+				}
+				client.executeBatch();
+			}
+		}
+	}
+
+	private TarantoolSession findById(final String id, TarantoolClient client) {
+		int space = getSpace(client);
+		client.select(space, SPACE_ID_INDEX);
+		client.setString(id);
+		Result result = client.execute();
+		if (result.getSize() == 0) {
+			return null;
+		}
+		assert result.getSize() == 1;
+		result.next();
+
+		TarantoolSession session = getSession(id, result);
+		getAttributes(client, session);
+		return session;
+	}
+
+	private TarantoolSession getSession(final String id, Result result) {
+		MapSession delegate = new MapSession(id);
+		delegate.setCreationTime(Instant.ofEpochMilli(result.getLong(2)));
+		delegate.setLastAccessedTime(Instant.ofEpochMilli(result.getLong(3)));
+		TarantoolSession session = new TarantoolSession(result.getString(0), delegate);
+		return session;
+	}
+
+	private void getAttributes(TarantoolClient client, TarantoolSession session) {
+		int attributesSpace = getAttributesSpace(client);
+		client.select(attributesSpace, ATTR_PRIMARY_INDEX);
+		client.setString(session.primaryKey);
+		Result result = client.execute();
+		while (result.next()) {
+			session.setAttribute(result.getString(1), deserialize(result.getBytes(2)));
+		}
 	}
 
 	@Override
-	public Map<String, TarantoolSession> findByIndexNameAndIndexValue(String indexName,
-			final String indexValue) {
+	public Map<String, TarantoolSession> findByIndexNameAndIndexValue(String indexName, final String indexValue) {
 		if (!PRINCIPAL_NAME_INDEX_NAME.equals(indexName)) {
 			return Collections.emptyMap();
 		}
 
 		Map<String, TarantoolSession> sessionMap = new HashMap<>();
-		// TODO
+
+		// TODO N+1 queries - lua procedure for the rescue
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.select(getSpace(client), SPACE_NAME_INDEX);
+			client.setString(indexValue);
+			Result result = client.execute();
+			while (result.next()) {
+				String id = result.getString(1);
+				sessionMap.put(id, getSession(id, result));
+			}
+
+			for (TarantoolSession session : sessionMap.values()) {
+				getAttributes(client, session);
+			}
+		}
 		return sessionMap;
 	}
 
@@ -248,22 +295,18 @@ public class TarantoolSessionRepository implements
 
 	private static GenericConversionService createDefaultConversionService() {
 		GenericConversionService converter = new GenericConversionService();
-		converter.addConverter(Object.class, byte[].class,
-				new SerializingConverter());
-		converter.addConverter(byte[].class, Object.class,
-				new DeserializingConverter());
+		converter.addConverter(Object.class, byte[].class, new SerializingConverter());
+		converter.addConverter(byte[].class, Object.class, new DeserializingConverter());
 		return converter;
 	}
 
 	private byte[] serialize(Object attributeValue) {
-		return (byte[]) this.conversionService.convert(attributeValue,
-				TypeDescriptor.valueOf(Object.class),
+		return (byte[]) this.conversionService.convert(attributeValue, TypeDescriptor.valueOf(Object.class),
 				TypeDescriptor.valueOf(byte[].class));
 	}
 
 	private Object deserialize(byte[] bytes) {
-		return this.conversionService.convert(bytes,
-				TypeDescriptor.valueOf(byte[].class),
+		return this.conversionService.convert(bytes, TypeDescriptor.valueOf(byte[].class),
 				TypeDescriptor.valueOf(Object.class));
 	}
 
@@ -271,7 +314,8 @@ public class TarantoolSessionRepository implements
 
 		private final Session delegate;
 
-		private final String primaryKey;
+		// visible for testing
+		final String primaryKey;
 
 		private boolean isNew;
 
@@ -343,8 +387,7 @@ public class TarantoolSessionRepository implements
 		public void setAttribute(String attributeName, Object attributeValue) {
 			this.delegate.setAttribute(attributeName, attributeValue);
 			this.delta.put(attributeName, attributeValue);
-			if (PRINCIPAL_NAME_INDEX_NAME.equals(attributeName) ||
-					SPRING_SECURITY_CONTEXT.equals(attributeName)) {
+			if (PRINCIPAL_NAME_INDEX_NAME.equals(attributeName) || SPRING_SECURITY_CONTEXT.equals(attributeName)) {
 				this.changed = true;
 			}
 		}
@@ -405,8 +448,7 @@ public class TarantoolSessionRepository implements
 			}
 			Object authentication = session.getAttribute(SPRING_SECURITY_CONTEXT);
 			if (authentication != null) {
-				Expression expression = this.parser
-						.parseExpression("authentication?.name");
+				Expression expression = this.parser.parseExpression("authentication?.name");
 				return expression.getValue(authentication, String.class);
 			}
 			return null;
@@ -429,14 +471,15 @@ public class TarantoolSessionRepository implements
 		client.evalFully("box.schema.space.create('" + spaceName + "')").consume();
 		// TODO format for field count and types
 		// SPACE_PRIMARY_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {{1, 'string'}}})")
+		client.evalFully(
+				"box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {{1, 'string'}}})")
 				.consume();
 		// SPACE_ID_INDEX
 		client.evalFully("box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {{2, 'string'}}})")
 				.consume();
 		// SPACE_NAME_INDEX
 		client.evalFully("box.space." + spaceName
-				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}})")
+				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}, unique=false})")
 				.consume();
 		// SPACE_EXPIRY_INDEX
 		client.evalFully("box.space." + spaceName + ":create_index('expiry', {type = 'hash', parts = {{5, 'num'}}})")
@@ -444,8 +487,7 @@ public class TarantoolSessionRepository implements
 
 		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
 		client.evalFully("box.space." + attributesSpaceName
-				+ ":create_index('primary', {type = 'tree', parts = {{1, 'string'}, {2, 'string'}}})")
-				.consume();
+				+ ":create_index('primary', {type = 'tree', parts = {{1, 'string'}, {2, 'string'}}})").consume();
 	}
 
 }
