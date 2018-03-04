@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +27,7 @@ import com.sopovs.moradanen.tarantool.Result;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
 import com.sopovs.moradanen.tarantool.core.IntOp;
+import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
 
 public class TarantoolSessionRepository
@@ -35,7 +37,6 @@ public class TarantoolSessionRepository
 	private static final int SPACE_ID_INDEX = 1;
 	private static final int SPACE_NAME_INDEX = 2;
 	private static final int SPACE_EXPIRY_INDEX = 3;
-	// visible for testing
 	static final int ATTR_PRIMARY_INDEX = 0;
 	public static final String DEFAULT_SPACE_NAME = "spring_session";
 	public static final String DEFAULT_ATTRIBUTES_SPACE_NAME = DEFAULT_SPACE_NAME + "_attrs";
@@ -85,14 +86,13 @@ public class TarantoolSessionRepository
 		this.attributesSpace = attributesSpace;
 	}
 
-	private int getSpace(TarantoolClient client) {
+	int getSpace(TarantoolClient client) {
 		if (space == null) {
 			space = client.space(spaceName);
 		}
 		return space;
 	}
 
-	// visible for testing
 	int getAttributesSpace(TarantoolClient client) {
 		if (attributesSpace == null) {
 			attributesSpace = client.space(attributesSpaceName);
@@ -205,28 +205,32 @@ public class TarantoolSessionRepository
 	public void deleteById(final String id) {
 		// TODO lua-procedure
 		try (TarantoolClient client = clientSource.getClient()) {
-			int space = getSpace(client);
-			TarantoolSession session = findById(id, client);
-			if (session == null) {
-				return;
-			}
-			client.delete(space, SPACE_PRIMARY_INDEX);
-			client.setString(session.primaryKey);
-			Set<String> attributeNames = session.getAttributeNames();
-			if (attributeNames.isEmpty()) {
-				client.execute().consume();
-			} else {
-				client.addBatch();
+			deleteById(client, id);
+		}
+	}
 
-				int attributesSpace = getAttributesSpace(client);
-				for (String attribute : attributeNames) {
-					client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
-					client.setString(session.primaryKey);
-					client.setString(attribute);
-					client.addBatch();
-				}
-				client.executeBatch();
+	private void deleteById(TarantoolClient client, final String id) {
+		int space = getSpace(client);
+		TarantoolSession session = findById(id, client);
+		if (session == null) {
+			return;
+		}
+		client.delete(space, SPACE_PRIMARY_INDEX);
+		client.setString(session.primaryKey);
+		Set<String> attributeNames = session.getAttributeNames();
+		if (attributeNames.isEmpty()) {
+			client.execute().consume();
+		} else {
+			client.addBatch();
+
+			int attributesSpace = getAttributesSpace(client);
+			for (String attribute : attributeNames) {
+				client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
+				client.setString(session.primaryKey);
+				client.setString(attribute);
+				client.addBatch();
 			}
+			client.executeBatch();
 		}
 	}
 
@@ -290,7 +294,20 @@ public class TarantoolSessionRepository
 	}
 
 	public void cleanUpExpiredSessions() {
-		// TODO
+		// TODO another lua procedure
+		try (TarantoolClient client = clientSource.getClient()) {
+			client.select(getSpace(client), SPACE_EXPIRY_INDEX, Integer.MAX_VALUE, 0, Iter.LE);
+			client.setLong(System.currentTimeMillis());
+			Result result = client.execute();
+			Set<String> ids = new HashSet<>();
+			while (result.next()) {
+				ids.add(result.getString(1));
+			}
+			ids.forEach(id -> deleteById(client, id));
+			if (logger.isDebugEnabled()) {
+				logger.debug("Cleaned up " + ids.size() + " expired sessions");
+			}
+		}
 	}
 
 	private static GenericConversionService createDefaultConversionService() {
@@ -314,7 +331,6 @@ public class TarantoolSessionRepository
 
 		private final Session delegate;
 
-		// visible for testing
 		final String primaryKey;
 
 		private boolean isNew;
@@ -482,8 +498,8 @@ public class TarantoolSessionRepository
 				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}, unique=false})")
 				.consume();
 		// SPACE_EXPIRY_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('expiry', {type = 'hash', parts = {{5, 'num'}}})")
-				.consume();
+		client.evalFully("box.space." + spaceName
+				+ ":create_index('expiry', {type = 'tree', parts = {{5, 'num'}}, unique=false})").consume();
 
 		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
 		client.evalFully("box.space." + attributesSpaceName

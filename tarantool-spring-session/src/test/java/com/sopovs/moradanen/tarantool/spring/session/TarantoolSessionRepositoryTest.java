@@ -9,14 +9,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.MapSession;
 
+import com.sopovs.moradanen.tarantool.Result;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
 import com.sopovs.moradanen.tarantool.TarantoolPooledClientSource;
@@ -135,6 +141,13 @@ public class TarantoolSessionRepositoryTest {
 	}
 
 	@Test
+	public void testFindByNewlyChangedId() {
+		session.changeSessionId();
+		sessionRepository.save(session);
+		assertSessionEquals(sessionRepository.findById(session.getId()));
+	}
+
+	@Test
 	public void testFindByChangedId() {
 		sessionRepository.save(session);
 		String prevId = session.getId();
@@ -182,6 +195,29 @@ public class TarantoolSessionRepositoryTest {
 		assertEquals(2, result.size());
 		assertSessionEquals(result.get(session.getId()));
 		assertSessionEquals(session2, result.get(session2.getId()));
+	}
+
+	@Test
+	public void testEqualEpirations() {
+		TarantoolSession session2 = sessionRepository.createSession();
+		Instant now = Instant.now();
+		session.setLastAccessedTime(now);
+		session2.setLastAccessedTime(now);
+		sessionRepository.save(session);
+		sessionRepository.save(session2);
+
+		assertEquals(sessionRepository.findById(session.getId()).getExpiryTime(),
+				sessionRepository.findById(session2.getId()).getExpiryTime());
+	}
+
+	@Test
+	public void testCleanUpExpiredSessions() {
+		session.setLastAccessedTime(Instant.now().minus(Duration.ofDays(100)));
+		sessionRepository.save(session);
+		assertSessionEquals(sessionRepository.findById(session.getId()));
+		sessionRepository.cleanUpExpiredSessions();
+		assertNull(sessionRepository.findById(session.getId()));
+
 	}
 
 }
