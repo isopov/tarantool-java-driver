@@ -12,17 +12,12 @@ import static org.springframework.session.FindByIndexNameSessionRepository.PRINC
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.session.MapSession;
 
-import com.sopovs.moradanen.tarantool.Result;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
 import com.sopovs.moradanen.tarantool.TarantoolPooledClientSource;

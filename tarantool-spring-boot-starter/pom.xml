@@ -30,6 +30,13 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.sopovs.moradanen</groupId>
+			<artifactId>tarantool-spring-session</artifactId>
+			<version>${project.version}</version>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<version>${spring.boot.version}</version>
