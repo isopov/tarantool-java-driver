@@ -52,6 +52,11 @@ public class TarantoolSessionRepositoryTest {
 	}
 
 	@Test
+	public void testCreateSpacesIfNotExist() {
+		sessionRepository.createSpaces();
+	}
+
+	@Test
 	public void testSaveEmpty() {
 		sessionRepository.save(session);
 	}
@@ -213,7 +218,6 @@ public class TarantoolSessionRepositoryTest {
 		assertSessionEquals(sessionRepository.findById(session.getId()));
 		sessionRepository.cleanUpExpiredSessions();
 		assertNull(sessionRepository.findById(session.getId()));
-
 	}
 
 }

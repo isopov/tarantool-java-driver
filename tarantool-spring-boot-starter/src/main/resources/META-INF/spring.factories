@@ -1,1 +1,3 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.sopovs.moradanen.tarantool.spring.boot.TarantoolAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.sopovs.moradanen.tarantool.spring.boot.TarantoolAutoConfiguration,\
+com.sopovs.moradanen.tarantool.spring.boot.session.TarantoolSessionAutoConfiguration

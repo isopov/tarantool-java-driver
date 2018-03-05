@@ -12,10 +12,6 @@
 	<artifactId>tarantool-spring-boot-starter</artifactId>
 	<packaging>jar</packaging>
 
-	<properties>
-		<spring.boot.version>2.0.0.RELEASE</spring.boot.version>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>com.sopovs.moradanen</groupId>
@@ -48,12 +44,11 @@
 	</dependencies>
 
 	<dependencyManagement>
-
 		<dependencies>
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>
-				<version>${spring.boot.version}</version>
+				<version>${spring-boot.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>

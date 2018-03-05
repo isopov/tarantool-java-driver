@@ -27,7 +27,8 @@ public class TarantoolProperties {
 	/**
 	 * Login password of the tarantool server.
 	 */
-	private char[] password;
+	//TODO char[] ?
+	private String password;
 
 	/**
 	 * TarantoolPooledClientSource size.
@@ -61,11 +62,11 @@ public class TarantoolProperties {
 		this.username = username;
 	}
 
-	public char[] getPassword() {
+	public String getPassword() {
 		return password;
 	}
 
-	public void setPassword(char[] password) {
+	public void setPassword(String password) {
 		this.password = password;
 	}
 

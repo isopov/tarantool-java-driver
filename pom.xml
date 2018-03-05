@@ -18,6 +18,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<spring-boot.version>2.0.0.RELEASE</spring-boot.version>
 		<java.version>1.8</java.version>
 	</properties>
 
@@ -29,6 +30,7 @@
 		<module>tarantool-spring-session</module>
 		<module>tarantool-spring-boot-starter</module>
 		<module>tarantool-benchmarks</module>
+		<module>tarantool-spring-boot-session-sample</module>
 	</modules>
 
 	<dependencies>

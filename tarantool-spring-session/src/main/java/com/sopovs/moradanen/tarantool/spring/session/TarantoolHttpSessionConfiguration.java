@@ -50,6 +50,8 @@ public class TarantoolHttpSessionConfiguration extends SpringHttpSessionConfigur
 
 	private String cleanupCron = DEFAULT_CLEANUP_CRON;
 
+	private boolean createSpaces = false;
+
 	private ConversionService springSessionConversionService;
 
 	private ConversionService conversionService;
@@ -75,6 +77,10 @@ public class TarantoolHttpSessionConfiguration extends SpringHttpSessionConfigur
 		} else {
 			sessionRepository.setConversionService(createConversionServiceWithBeanClassLoader());
 		}
+
+		if (createSpaces) {
+			sessionRepository.createSpaces();
+		}
 		return sessionRepository;
 	}
 
@@ -88,6 +94,10 @@ public class TarantoolHttpSessionConfiguration extends SpringHttpSessionConfigur
 
 	public void setCleanupCron(String cleanupCron) {
 		this.cleanupCron = cleanupCron;
+	}
+
+	public void setCreateSpaces(boolean createSpaces) {
+		this.createSpaces = createSpaces;
 	}
 
 	@Autowired

@@ -504,34 +504,31 @@ public class TarantoolSessionRepository
 		}
 	}
 
-	public static void createSpaces(TarantoolClient client) {
-		createSpaces(DEFAULT_SPACE_NAME, DEFAULT_ATTRIBUTES_SPACE_NAME, client);
-
-	}
-
-	public static void createSpaces(String spaceName, String attributesSpaceName, TarantoolClient client) {
-		client.evalFully("box.schema.space.create('" + spaceName + "')").consume();
+	static void createSpaces(String spaceName, String attributesSpaceName, TarantoolClient client) {
+		client.evalFully("box.schema.space.create('" + spaceName + "', {if_not_exists=true})").consume();
 		// TODO format for field count and types
 		// SPACE_PRIMARY_INDEX
 		client.evalFully(
 				"box.space." + spaceName
-						+ ":create_index('primary', {type = 'hash', parts = {{1, 'int'}, {2, 'int'}}})")
+						+ ":create_index('primary', {type = 'hash', if_not_exists=true, parts = {{1, 'int'}, {2, 'int'}}})")
 				.consume();
 		// SPACE_ID_INDEX
 		client.evalFully(
-				"box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {{3, 'int'}, {4, 'int'}}})")
+				"box.space." + spaceName
+						+ ":create_index('id', {type = 'hash', if_not_exists=true, parts = {{3, 'int'}, {4, 'int'}}})")
 				.consume();
 		// SPACE_NAME_INDEX
 		client.evalFully("box.space." + spaceName
-				+ ":create_index('name', {type = 'tree', parts = {{8, 'string', is_nullable=true}}, unique=false})")
+				+ ":create_index('name', {type = 'tree', if_not_exists=true, parts = {{8, 'string', is_nullable=true}}, unique=false})")
 				.consume();
 		// SPACE_EXPIRY_INDEX
 		client.evalFully("box.space." + spaceName
-				+ ":create_index('expiry', {type = 'tree', parts = {{7, 'uint'}}, unique=false})").consume();
+				+ ":create_index('expiry', {type = 'tree', if_not_exists=true, parts = {{7, 'uint'}}, unique=false})")
+				.consume();
 
-		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
+		client.evalFully("box.schema.space.create('" + attributesSpaceName + "', {if_not_exists=true})").consume();
 		client.evalFully("box.space." + attributesSpaceName
-				+ ":create_index('primary', {type = 'tree', parts = {{1, 'int'}, {2, 'int'}, {3, 'string'}}})")
+				+ ":create_index('primary', {type = 'tree', if_not_exists=true, parts = {{1, 'int'}, {2, 'int'}, {3, 'string'}}})")
 				.consume();
 	}
 

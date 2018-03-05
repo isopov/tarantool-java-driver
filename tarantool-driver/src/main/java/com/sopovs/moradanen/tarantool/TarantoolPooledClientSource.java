@@ -30,6 +30,10 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 		this.pool = new ArrayDeque<>(size);
 	}
 
+	public TarantoolPooledClientSource(TarantoolConfig config, int size) {
+		this(config, TarantoolClientImpl::new, size);
+	}
+
 	public TarantoolPooledClientSource(String host, int port, int size) {
 		this(new TarantoolConfig(host, port, null, null), TarantoolClientImpl::new, size);
 	}
@@ -255,9 +259,6 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			}
 		}
 
-		
-		
-		
 		@Override
 		public void change(IntOp op, int field, long arg) {
 			checkClosed();
@@ -266,7 +267,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			} catch (TarantoolException e) {
 				throw closeOnException(e);
 			}
-			
+
 		}
 
 		@Override
@@ -277,7 +278,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 			} catch (TarantoolException e) {
 				throw closeOnException(e);
 			}
-			
+
 		}
 
 		@Override

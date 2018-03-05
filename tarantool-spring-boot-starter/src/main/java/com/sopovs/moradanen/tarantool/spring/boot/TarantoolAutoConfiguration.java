@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.sopovs.moradanen.tarantool.TarantoolTemplate;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
+import com.sopovs.moradanen.tarantool.TarantoolConfig;
 import com.sopovs.moradanen.tarantool.TarantoolPooledClientSource;
 
 @Configuration
@@ -23,8 +24,9 @@ public class TarantoolAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public TarantoolClientSource tarantoolClientSource() {
-		return clientSource = new TarantoolPooledClientSource(properties.getHost(), properties.getPort(),
-				properties.getPoolSize());
+		TarantoolConfig config = new TarantoolConfig(properties.getHost(), properties.getPort(),
+				properties.getUsername(), properties.getPassword());
+		return clientSource = new TarantoolPooledClientSource(config, properties.getPoolSize());
 	}
 
 	@Bean

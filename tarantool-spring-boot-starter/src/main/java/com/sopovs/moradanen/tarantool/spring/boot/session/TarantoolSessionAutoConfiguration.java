@@ -1,4 +1,5 @@
 package com.sopovs.moradanen.tarantool.spring.boot.session;
+
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,16 +18,7 @@ import com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository;
 @ConditionalOnClass({ TarantoolClientSource.class, TarantoolSessionRepository.class })
 @ConditionalOnMissingBean(SessionRepository.class)
 @EnableConfigurationProperties(TarantoolSessionProperties.class)
-class TarantoolSessionConfiguration {
-//
-//	@Bean
-//	@ConditionalOnMissingBean
-//	public JdbcSessionDataSourceInitializer jdbcSessionDataSourceInitializer(
-//			DataSource dataSource, ResourceLoader resourceLoader,
-//			JdbcSessionProperties properties) {
-//		return new JdbcSessionDataSourceInitializer(dataSource, resourceLoader,
-//				properties);
-//	}
+public class TarantoolSessionAutoConfiguration {
 
 	@Configuration
 	public static class SpringBootTarantoolHttpSessionConfiguration
@@ -41,6 +33,7 @@ class TarantoolSessionConfiguration {
 			}
 			setSpaceName(tarantoolSessionProperties.getSpaceName());
 			setCleanupCron(tarantoolSessionProperties.getCleanupCron());
+			tarantoolSessionProperties.isCreateSpaces();
 		}
 
 	}
