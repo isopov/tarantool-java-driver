@@ -117,7 +117,8 @@ public class TarantoolSessionRepositoryTest {
 
 		try (TarantoolClient client = clientSource.getClient()) {
 			client.select(sessionRepository.getAttributesSpace(client), ATTR_PRIMARY_INDEX);
-			client.setString(session.primaryKey);
+			client.setLong(session.primaryKey.getMostSignificantBits());
+			client.setLong(session.primaryKey.getLeastSignificantBits());
 			assertEquals(0, client.execute().getSize());
 		}
 	}

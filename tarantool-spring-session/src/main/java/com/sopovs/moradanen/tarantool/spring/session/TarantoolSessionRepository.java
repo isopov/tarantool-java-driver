@@ -101,9 +101,9 @@ public class TarantoolSessionRepository
 	}
 
 	/**
-	 * Set the maximum inactive interval in seconds between requests before newly
-	 * created sessions will be invalidated. A negative time indicates that the
-	 * session will never timeout. The default is 1800 (30 minutes).
+	 * Set the maximum inactive interval in seconds between requests before
+	 * newly created sessions will be invalidated. A negative time indicates
+	 * that the session will never timeout. The default is 1800 (30 minutes).
 	 * 
 	 * @param defaultMaxInactiveInterval
 	 *            the maximum inactive interval in seconds
@@ -139,8 +139,10 @@ public class TarantoolSessionRepository
 			int attributesSpace = getAttributesSpace(client);
 			if (session.isNew()) {
 				client.insert(space);
-				client.setString(session.primaryKey);
-				client.setString(session.getId());
+				client.setLong(session.primaryKey.getMostSignificantBits());
+				client.setLong(session.primaryKey.getLeastSignificantBits());
+				client.setLong(session.id.getMostSignificantBits());
+				client.setLong(session.id.getLeastSignificantBits());
 				client.setLong(session.getCreationTime().toEpochMilli());
 				client.setLong(session.getLastAccessedTime().toEpochMilli());
 				client.setLong(session.getExpiryTime().toEpochMilli());
@@ -153,7 +155,8 @@ public class TarantoolSessionRepository
 					client.addBatch();
 					for (String attribute : attributes) {
 						client.insert(attributesSpace);
-						client.setString(session.primaryKey);
+						client.setLong(session.primaryKey.getMostSignificantBits());
+						client.setLong(session.primaryKey.getLeastSignificantBits());
 						client.setString(attribute);
 						client.setBytes(serialize(session.getAttribute(attribute)));
 						client.addBatch();
@@ -163,11 +166,13 @@ public class TarantoolSessionRepository
 			} else {
 				if (session.isChanged()) {
 					client.update(space, SPACE_PRIMARY_INDEX);
-					client.setString(session.primaryKey);
-					client.change(Op.ASSIGN, 1, session.getId());
-					client.change(IntOp.ASSIGN, 3, session.getLastAccessedTime().toEpochMilli());
-					client.change(IntOp.ASSIGN, 4, session.getExpiryTime().toEpochMilli());
-					client.change(Op.ASSIGN, 5, session.getPrincipalName());
+					client.setLong(session.primaryKey.getMostSignificantBits());
+					client.setLong(session.primaryKey.getLeastSignificantBits());
+					client.change(IntOp.ASSIGN, 2, session.id.getMostSignificantBits());
+					client.change(IntOp.ASSIGN, 3, session.id.getLeastSignificantBits());
+					client.change(IntOp.ASSIGN, 5, session.getLastAccessedTime().toEpochMilli());
+					client.change(IntOp.ASSIGN, 6, session.getExpiryTime().toEpochMilli());
+					client.change(Op.ASSIGN, 7, session.getPrincipalName());
 					client.execute().consume();
 				}
 
@@ -176,11 +181,13 @@ public class TarantoolSessionRepository
 					for (final Map.Entry<String, Object> entry : delta.entrySet()) {
 						if (entry.getValue() == null) {
 							client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
-							client.setString(session.primaryKey);
+							client.setLong(session.primaryKey.getMostSignificantBits());
+							client.setLong(session.primaryKey.getLeastSignificantBits());
 							client.setString(entry.getKey());
 						} else {
 							client.upsert(attributesSpace);
-							client.setString(session.primaryKey);
+							client.setLong(session.primaryKey.getMostSignificantBits());
+							client.setLong(session.primaryKey.getLeastSignificantBits());
 							client.setString(entry.getKey());
 							client.setBytes(serialize(entry.getValue()));
 						}
@@ -197,7 +204,7 @@ public class TarantoolSessionRepository
 	@Override
 	public TarantoolSession findById(final String id) {
 		try (TarantoolClient client = clientSource.getClient()) {
-			return findById(id, client);
+			return findById(UUID.fromString(id), id, client);
 		}
 	}
 
@@ -205,18 +212,23 @@ public class TarantoolSessionRepository
 	public void deleteById(final String id) {
 		// TODO lua-procedure
 		try (TarantoolClient client = clientSource.getClient()) {
-			deleteById(client, id);
+			deleteById(UUID.fromString(id), id, client);
 		}
 	}
 
-	private void deleteById(TarantoolClient client, final String id) {
+	private void deleteById(UUID id, TarantoolClient client) {
+		deleteById(id, id.toString(), client);
+	}
+
+	private void deleteById(UUID uuid, String id, TarantoolClient client) {
 		int space = getSpace(client);
-		TarantoolSession session = findById(id, client);
+		TarantoolSession session = findById(uuid, id, client);
 		if (session == null) {
 			return;
 		}
 		client.delete(space, SPACE_PRIMARY_INDEX);
-		client.setString(session.primaryKey);
+		client.setLong(session.primaryKey.getMostSignificantBits());
+		client.setLong(session.primaryKey.getLeastSignificantBits());
 		Set<String> attributeNames = session.getAttributeNames();
 		if (attributeNames.isEmpty()) {
 			client.execute().consume();
@@ -226,7 +238,8 @@ public class TarantoolSessionRepository
 			int attributesSpace = getAttributesSpace(client);
 			for (String attribute : attributeNames) {
 				client.delete(attributesSpace, ATTR_PRIMARY_INDEX);
-				client.setString(session.primaryKey);
+				client.setLong(session.primaryKey.getMostSignificantBits());
+				client.setLong(session.primaryKey.getLeastSignificantBits());
 				client.setString(attribute);
 				client.addBatch();
 			}
@@ -234,10 +247,11 @@ public class TarantoolSessionRepository
 		}
 	}
 
-	private TarantoolSession findById(final String id, TarantoolClient client) {
+	private TarantoolSession findById(UUID uuid, String id, TarantoolClient client) {
 		int space = getSpace(client);
 		client.select(space, SPACE_ID_INDEX);
-		client.setString(id);
+		client.setLong(uuid.getMostSignificantBits());
+		client.setLong(uuid.getLeastSignificantBits());
 		Result result = client.execute();
 		if (result.getSize() == 0) {
 			return null;
@@ -245,26 +259,30 @@ public class TarantoolSessionRepository
 		assert result.getSize() == 1;
 		result.next();
 
-		TarantoolSession session = getSession(id, result);
-		getAttributes(client, session);
+		TarantoolSession session = getSession(uuid, id, result);
+		getAttributes(session, client);
 		return session;
 	}
 
-	private TarantoolSession getSession(final String id, Result result) {
+	private TarantoolSession getSession(UUID uuid, String id, Result result) {
 		MapSession delegate = new MapSession(id);
-		delegate.setCreationTime(Instant.ofEpochMilli(result.getLong(2)));
-		delegate.setLastAccessedTime(Instant.ofEpochMilli(result.getLong(3)));
-		TarantoolSession session = new TarantoolSession(result.getString(0), delegate);
+		delegate.setCreationTime(Instant.ofEpochMilli(result.getLong(4)));
+		delegate.setLastAccessedTime(Instant.ofEpochMilli(result.getLong(5)));
+
+		TarantoolSession session = new TarantoolSession(
+				new UUID(result.getLong(0), result.getLong(1)),
+				uuid, delegate);
 		return session;
 	}
 
-	private void getAttributes(TarantoolClient client, TarantoolSession session) {
+	private void getAttributes(TarantoolSession session, TarantoolClient client) {
 		int attributesSpace = getAttributesSpace(client);
 		client.select(attributesSpace, ATTR_PRIMARY_INDEX);
-		client.setString(session.primaryKey);
+		client.setLong(session.primaryKey.getMostSignificantBits());
+		client.setLong(session.primaryKey.getLeastSignificantBits());
 		Result result = client.execute();
 		while (result.next()) {
-			session.setAttribute(result.getString(1), deserialize(result.getBytes(2)));
+			session.setAttribute(result.getString(2), deserialize(result.getBytes(3)));
 		}
 	}
 
@@ -282,12 +300,12 @@ public class TarantoolSessionRepository
 			client.setString(indexValue);
 			Result result = client.execute();
 			while (result.next()) {
-				String id = result.getString(1);
-				sessionMap.put(id, getSession(id, result));
+				UUID uuid = new UUID(result.getLong(2), result.getLong(3));
+				sessionMap.put(uuid.toString(), getSession(uuid, uuid.toString(), result));
 			}
 
 			for (TarantoolSession session : sessionMap.values()) {
-				getAttributes(client, session);
+				getAttributes(session, client);
 			}
 		}
 		return sessionMap;
@@ -299,11 +317,11 @@ public class TarantoolSessionRepository
 			client.select(getSpace(client), SPACE_EXPIRY_INDEX, Integer.MAX_VALUE, 0, Iter.LE);
 			client.setLong(System.currentTimeMillis());
 			Result result = client.execute();
-			Set<String> ids = new HashSet<>();
+			Set<UUID> ids = new HashSet<>();
 			while (result.next()) {
-				ids.add(result.getString(1));
+				ids.add(new UUID(result.getLong(2), result.getLong(3)));
 			}
-			ids.forEach(id -> deleteById(client, id));
+			ids.forEach(id -> deleteById(id, client));
 			if (logger.isDebugEnabled()) {
 				logger.debug("Cleaned up " + ids.size() + " expired sessions");
 			}
@@ -329,9 +347,11 @@ public class TarantoolSessionRepository
 
 	static final class TarantoolSession implements Session {
 
-		private final Session delegate;
+		private final MapSession delegate;
 
-		final String primaryKey;
+		final UUID primaryKey;
+
+		private UUID id;
 
 		private boolean isNew;
 
@@ -340,15 +360,18 @@ public class TarantoolSessionRepository
 		private Map<String, Object> delta = new HashMap<>();
 
 		TarantoolSession() {
-			this.delegate = new MapSession();
+			this.id = UUID.randomUUID();
+			this.delegate = new MapSession(id.toString());
 			this.isNew = true;
-			this.primaryKey = UUID.randomUUID().toString();
+			this.primaryKey = UUID.randomUUID();
 		}
 
-		TarantoolSession(String primaryKey, Session delegate) {
+		TarantoolSession(UUID primaryKey, UUID id, MapSession delegate) {
 			Assert.notNull(primaryKey, "primaryKey cannot be null");
+			Assert.notNull(id, "Id cannot be null");
 			Assert.notNull(delegate, "Session cannot be null");
 			this.primaryKey = primaryKey;
+			this.id = id;
 			this.delegate = delegate;
 		}
 
@@ -386,7 +409,10 @@ public class TarantoolSessionRepository
 		@Override
 		public String changeSessionId() {
 			this.changed = true;
-			return this.delegate.changeSessionId();
+			this.id = UUID.randomUUID();
+			String changed = id.toString();
+			this.delegate.setId(changed);
+			return changed;
 		}
 
 		@Override
@@ -474,36 +500,39 @@ public class TarantoolSessionRepository
 
 	public void createSpaces() {
 		try (TarantoolClient client = clientSource.getClient()) {
-			createSpaces(client, spaceName, attributesSpaceName);
+			createSpaces(spaceName, attributesSpaceName, client);
 		}
 	}
 
 	public static void createSpaces(TarantoolClient client) {
-		createSpaces(client, DEFAULT_SPACE_NAME, DEFAULT_ATTRIBUTES_SPACE_NAME);
+		createSpaces(DEFAULT_SPACE_NAME, DEFAULT_ATTRIBUTES_SPACE_NAME, client);
 
 	}
 
-	public static void createSpaces(TarantoolClient client, String spaceName, String attributesSpaceName) {
+	public static void createSpaces(String spaceName, String attributesSpaceName, TarantoolClient client) {
 		client.evalFully("box.schema.space.create('" + spaceName + "')").consume();
 		// TODO format for field count and types
 		// SPACE_PRIMARY_INDEX
 		client.evalFully(
-				"box.space." + spaceName + ":create_index('primary', {type = 'hash', parts = {{1, 'string'}}})")
+				"box.space." + spaceName
+						+ ":create_index('primary', {type = 'hash', parts = {{1, 'int'}, {2, 'int'}}})")
 				.consume();
 		// SPACE_ID_INDEX
-		client.evalFully("box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {{2, 'string'}}})")
+		client.evalFully(
+				"box.space." + spaceName + ":create_index('id', {type = 'hash', parts = {{3, 'int'}, {4, 'int'}}})")
 				.consume();
 		// SPACE_NAME_INDEX
 		client.evalFully("box.space." + spaceName
-				+ ":create_index('name', {type = 'tree', parts = {{6, 'string', is_nullable=true}}, unique=false})")
+				+ ":create_index('name', {type = 'tree', parts = {{8, 'string', is_nullable=true}}, unique=false})")
 				.consume();
 		// SPACE_EXPIRY_INDEX
 		client.evalFully("box.space." + spaceName
-				+ ":create_index('expiry', {type = 'tree', parts = {{5, 'num'}}, unique=false})").consume();
+				+ ":create_index('expiry', {type = 'tree', parts = {{7, 'uint'}}, unique=false})").consume();
 
 		client.evalFully("box.schema.space.create('" + attributesSpaceName + "')").consume();
 		client.evalFully("box.space." + attributesSpaceName
-				+ ":create_index('primary', {type = 'tree', parts = {{1, 'string'}, {2, 'string'}}})").consume();
+				+ ":create_index('primary', {type = 'tree', parts = {{1, 'int'}, {2, 'int'}, {3, 'string'}}})")
+				.consume();
 	}
 
 }
