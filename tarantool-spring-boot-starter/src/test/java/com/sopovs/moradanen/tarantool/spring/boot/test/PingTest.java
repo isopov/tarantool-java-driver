@@ -1,4 +1,4 @@
-package com.sopovs.moradanen.tarantool.spring.boot;
+package com.sopovs.moradanen.tarantool.spring.boot.test;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
