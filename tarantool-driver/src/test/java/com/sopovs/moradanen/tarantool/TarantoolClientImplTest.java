@@ -143,7 +143,7 @@ public class TarantoolClientImplTest {
 
 			client.evalFully("box.schema.space.create('javatest')");
 			client.evalFully(
-					"box.space.javatest:create_index('primary', {type = 'hash', parts = {{1, 'num'}, {2, 'num'}}})");
+					"box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num', 2, 'num'}})");
 
 			client.insert("javatest");
 			client.setInt(1);
@@ -200,7 +200,7 @@ public class TarantoolClientImplTest {
 
 	static void createTestSpace(TarantoolClient client) {
 		client.evalFully("box.schema.space.create('javatest')");
-		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {{1, 'num'}}})");
+		client.evalFully("box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}})");
 	}
 
 	@Test
