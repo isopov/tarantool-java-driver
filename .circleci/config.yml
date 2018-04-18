@@ -1,0 +1,30 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:9-jdk
+      - image: tarantool/tarantool:2
+    working_directory: ~/repo
+    environment:
+      MAVEN_OPTS: -Xmx1200m
+    steps:
+
+      - checkout
+
+      - run: dockerize -wait tcp://localhost:3301 -timeout 1m
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "pom.xml" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run: ./mvnw clean package -DskipTests
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+      # run tests!
+      - run: ./mvnw clean package
