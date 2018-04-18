@@ -24,6 +24,13 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
+        <!-- Provided (Javadoc on Java 9) -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.sopovs.moradanen</groupId>
             <artifactId>tarantool-spring-session</artifactId>
