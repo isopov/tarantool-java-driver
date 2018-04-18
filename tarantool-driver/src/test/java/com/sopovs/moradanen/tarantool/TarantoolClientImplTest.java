@@ -119,6 +119,21 @@ public class TarantoolClientImplTest {
 	}
 
 	@Test
+	public void testReplace() throws Exception {
+		try (TarantoolClient client = new TarantoolClientImpl("localhost");
+				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
+			createTestSpace(client);
+
+			client.replace("javatest");
+			client.setInt(1);
+			client.setInt(0);
+			client.setString("Foobar");
+
+			insertCheck(client);
+		}
+	}
+
+	@Test
 	public void testDelete() throws Exception {
 		try (TarantoolClient client = new TarantoolClientImpl("localhost");
 				AutoCloseable dropSpace = () -> client.evalFully("box.space.javatest:drop()")) {
@@ -179,6 +194,10 @@ public class TarantoolClientImplTest {
 		client.setInt(0);
 		client.setString("Foobar");
 
+		insertCheck(client);
+	}
+
+	private static void insertCheck(TarantoolClient client) {
 		Result insert = client.execute();
 		assertEquals(1, insert.getSize());
 		insert.consume();
