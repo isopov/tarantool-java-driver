@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.sopovs.moradanen</groupId>
+        <groupId>com.sopovs.moradanen.tarantool</groupId>
         <artifactId>tarantool-driver-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
