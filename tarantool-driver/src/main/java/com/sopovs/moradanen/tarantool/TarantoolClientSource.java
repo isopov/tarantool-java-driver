@@ -4,8 +4,8 @@ import java.io.Closeable;
 
 public interface TarantoolClientSource extends Closeable {
 
-	TarantoolClient getClient();
+    TarantoolClient getClient();
 
-	@Override
-	void close();
+    @Override
+    void close();
 }

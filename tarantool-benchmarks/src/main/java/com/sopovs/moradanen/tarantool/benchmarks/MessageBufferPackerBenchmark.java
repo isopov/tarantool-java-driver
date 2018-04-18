@@ -1,30 +1,20 @@
 package com.sopovs.moradanen.tarantool.benchmarks;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.buffer.MessageBuffer;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 //Benchmark                                  (size)  Mode  Cnt        Score       Error  Units
 //MessageBufferPackerBenchmark.simple            10  avgt   15       40.960 ±     0.405  ns/op
@@ -56,65 +46,65 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Fork(3)
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 3, time = 1)
+@Measurement(iterations = 5, time = 1)
 public class MessageBufferPackerBenchmark {
 
-	private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+    private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
 
-	@Param({ "10", "100", "1000", "10000", "100000", "1000000" })
-	public int size;
+    @Param({"10", "100", "1000", "10000", "100000", "1000000"})
+    public int size;
 
-	@Setup
-	public void setup() throws IOException {
-		Random r = new Random(42L);
-		for (int i = 0; i < size; i++) {
-			packer.packInt(r.nextInt());
-		}
-	}
+    @Setup
+    public void setup() throws IOException {
+        Random r = new Random(42L);
+        for (int i = 0; i < size; i++) {
+            packer.packInt(r.nextInt());
+        }
+    }
 
-	@Benchmark
-	public void simple(Blackhole bh) {
-		bh.consume(packer.getBufferSize());
-		bh.consume(packer.toByteArray());
-	}
+    @Benchmark
+    public void simple(Blackhole bh) {
+        bh.consume(packer.getBufferSize());
+        bh.consume(packer.toByteArray());
+    }
 
-	@Benchmark
-	public void bufferList(Blackhole bh) {
-		List<MessageBuffer> bufferList = packer.toBufferList();
-		writeSize(bufferList, bh);
-		for (int i = 0; i < bufferList.size(); i++) {
-			MessageBuffer messageBuffer = bufferList.get(i);
-			bh.consume(messageBuffer.toByteArray());
-		}
-	}
+    @Benchmark
+    public void bufferList(Blackhole bh) {
+        List<MessageBuffer> bufferList = packer.toBufferList();
+        writeSize(bufferList, bh);
+        for (int i = 0; i < bufferList.size(); i++) {
+            MessageBuffer messageBuffer = bufferList.get(i);
+            bh.consume(messageBuffer.toByteArray());
+        }
+    }
 
-	@Benchmark
-	public void bufferList2(Blackhole bh) {
-		List<MessageBuffer> bufferList = packer.toBufferList();
-		writeSize(bufferList, bh);
-		for (int i = 0; i < bufferList.size(); i++) {
-			MessageBuffer messageBuffer = bufferList.get(i);
-			bh.consume(messageBuffer.array());
-		}
-	}
+    @Benchmark
+    public void bufferList2(Blackhole bh) {
+        List<MessageBuffer> bufferList = packer.toBufferList();
+        writeSize(bufferList, bh);
+        for (int i = 0; i < bufferList.size(); i++) {
+            MessageBuffer messageBuffer = bufferList.get(i);
+            bh.consume(messageBuffer.array());
+        }
+    }
 
-	private void writeSize(List<MessageBuffer> bufferList, Blackhole bh) {
-		int size = 0;
-		for (int i = 0; i < bufferList.size(); i++) {
-			MessageBuffer messageBuffer = bufferList.get(i);
-			size += messageBuffer.size();
-		}
-		bh.consume(size);
-	}
+    private void writeSize(List<MessageBuffer> bufferList, Blackhole bh) {
+        int size = 0;
+        for (int i = 0; i < bufferList.size(); i++) {
+            MessageBuffer messageBuffer = bufferList.get(i);
+            size += messageBuffer.size();
+        }
+        bh.consume(size);
+    }
 
-	public static void main(String[] args) throws RunnerException {
-		Options opt = new OptionsBuilder()
-				.include(".*" + MessageBufferPackerBenchmark.class.getSimpleName() + ".*")
-				.addProfiler(GCProfiler.class)
-				.build();
+    public static void main(String[] args) throws RunnerException {
+        Options opt = new OptionsBuilder()
+                .include(".*" + MessageBufferPackerBenchmark.class.getSimpleName() + ".*")
+                .addProfiler(GCProfiler.class)
+                .build();
 
-		new Runner(opt).run();
-	}
+        new Runner(opt).run();
+    }
 
 }

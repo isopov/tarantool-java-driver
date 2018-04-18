@@ -1,149 +1,145 @@
 package com.sopovs.moradanen.tarantool;
 
-import java.io.Closeable;
+import com.sopovs.moradanen.tarantool.core.*;
 
-import com.sopovs.moradanen.tarantool.core.Iter;
-import com.sopovs.moradanen.tarantool.core.Op;
-import com.sopovs.moradanen.tarantool.core.IntOp;
-import com.sopovs.moradanen.tarantool.core.TarantoolException;
-import com.sopovs.moradanen.tarantool.core.Util;
+import java.io.Closeable;
 
 public interface TarantoolClient extends Closeable {
 
-	Result execute();
+    Result execute();
 
-	void addBatch();
+    void addBatch();
 
-	void executeBatch();
+    void executeBatch();
 
-	default int space(String space) {
-		select(Util.SPACE_VSPACE, Util.INDEX_SPACE_NAME);
-		setString(space);
-		Result result = execute();
-		if (result.getSize() == 0) {
-			throw new TarantoolException("No such space " + space);
-		}
-		if (result.getSize() != 1) {
-			throw new TarantoolException("Unexpected result length " + result.getSize());
-		}
-		result.next();
-		return result.getInt(0);
-	}
+    default int space(String space) {
+        select(Util.SPACE_VSPACE, Util.INDEX_SPACE_NAME);
+        setString(space);
+        Result result = execute();
+        if (result.getSize() == 0) {
+            throw new TarantoolException("No such space " + space);
+        }
+        if (result.getSize() != 1) {
+            throw new TarantoolException("Unexpected result length " + result.getSize());
+        }
+        result.next();
+        return result.getInt(0);
+    }
 
-	void select(int space, int index, int limit, int offset, Iter iterator);
+    void select(int space, int index, int limit, int offset, Iter iterator);
 
-	default void select(int space, int index, int limit, int offset) {
-		select(space, index, limit, offset, Iter.EQ);
-	}
+    default void select(int space, int index, int limit, int offset) {
+        select(space, index, limit, offset, Iter.EQ);
+    }
 
-	default void select(String space, int index, int limit, int offset) {
-		select(space(space), index, limit, offset);
-	}
+    default void select(String space, int index, int limit, int offset) {
+        select(space(space), index, limit, offset);
+    }
 
-	default void select(int space, int index) {
-		select(space, index, Integer.MAX_VALUE, 0);
-	}
+    default void select(int space, int index) {
+        select(space, index, Integer.MAX_VALUE, 0);
+    }
 
-	default void select(String space, int index) {
-		select(space(space), index, Integer.MAX_VALUE, 0);
-	}
+    default void select(String space, int index) {
+        select(space(space), index, Integer.MAX_VALUE, 0);
+    }
 
-	default void select(int space, int index, int limit) {
-		select(space, index, limit, 0);
-	}
+    default void select(int space, int index, int limit) {
+        select(space, index, limit, 0);
+    }
 
-	default void select(String space, int index, int limit) {
-		select(space(space), index, limit, 0);
-	}
+    default void select(String space, int index, int limit) {
+        select(space(space), index, limit, 0);
+    }
 
-	void selectAll(int space, int limit, int offset);
+    void selectAll(int space, int limit, int offset);
 
-	default void selectAll(int space) {
-		selectAll(space, Integer.MAX_VALUE, 0);
-	}
+    default void selectAll(int space) {
+        selectAll(space, Integer.MAX_VALUE, 0);
+    }
 
-	default void selectAll(String space) {
-		selectAll(space(space), Integer.MAX_VALUE, 0);
-	}
+    default void selectAll(String space) {
+        selectAll(space(space), Integer.MAX_VALUE, 0);
+    }
 
-	default void selectAll(int space, int limit) {
-		selectAll(space, limit, 0);
-	}
+    default void selectAll(int space, int limit) {
+        selectAll(space, limit, 0);
+    }
 
-	default void selectAll(String space, int limit) {
-		selectAll(space(space), limit, 0);
-	}
+    default void selectAll(String space, int limit) {
+        selectAll(space(space), limit, 0);
+    }
 
-	void eval(String expression);
+    void eval(String expression);
 
-	default Result evalFully(String expression) {
-		eval(expression);
-		return execute();
-	}
+    default Result evalFully(String expression) {
+        eval(expression);
+        return execute();
+    }
 
-	void insert(int space);
+    void insert(int space);
 
-	default void insert(String space) {
-		insert(space(space));
-	}
+    default void insert(String space) {
+        insert(space(space));
+    }
 
-	void replace(int space);
+    void replace(int space);
 
-	default void replace(String space) {
-		replace(space(space));
-	}
+    default void replace(String space) {
+        replace(space(space));
+    }
 
-	void delete(int space, int index);
+    void delete(int space, int index);
 
-	default void delete(String space, int index) {
-		delete(space(space), index);
-	}
+    default void delete(String space, int index) {
+        delete(space(space), index);
+    }
 
-	default void delete(String space) {
-		delete(space(space), 0);
-	}
+    default void delete(String space) {
+        delete(space(space), 0);
+    }
 
-	void update(int space, int index);
+    void update(int space, int index);
 
-	void upsert(int space);
+    void upsert(int space);
 
-	void change(IntOp op, int field, int arg);
-	
-	void change(IntOp op, int field, long arg);
-	
-	void change(Op op, int field, String arg);
-	
-	void change(Op op, int field, byte[] arg);
+    void change(IntOp op, int field, int arg);
 
-	void ping();
+    void change(IntOp op, int field, long arg);
 
-	void setNull();
+    void change(Op op, int field, String arg);
 
-	void setBoolean(boolean val);
+    void change(Op op, int field, byte[] arg);
 
-	void setDouble(double val);
+    void ping();
 
-	void setFloat(float val);
+    void setNull();
 
-	void setInt(int val);
+    void setBoolean(boolean val);
 
-	void setLong(long val);
+    void setDouble(double val);
 
-	void setString(String val);
+    void setFloat(float val);
 
-	void setBytes(byte[] bytes);
+    void setInt(int val);
 
-	String getVersion();
+    void setLong(long val);
 
-	void sql(String sqlQuery);
+    void setString(String val);
 
-	boolean isClosed();
+    void setBytes(byte[] bytes);
 
-	@Override
-	void close();
+    String getVersion();
 
-	int executeUpdate();
+    void sql(String sqlQuery);
 
-	int[] executeBatchUpdate();
+    boolean isClosed();
+
+    @Override
+    void close();
+
+    int executeUpdate();
+
+    int[] executeBatchUpdate();
 
 }

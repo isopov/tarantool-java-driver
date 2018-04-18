@@ -1,15 +1,15 @@
 package com.sopovs.moradanen.tarantool.core;
 
 public enum Op {
-	DELETE("#"), INSERT("!"), ASSIGN("=");
+    DELETE("#"), INSERT("!"), ASSIGN("=");
 
-	private final String val;
+    private final String val;
 
-	private Op(String val) {
-		this.val = val;
-	}
+    Op(String val) {
+        this.val = val;
+    }
 
-	public String getVal() {
-		return val;
-	}
+    public String getVal() {
+        return val;
+    }
 }
