@@ -10,12 +10,4 @@
 
     <artifactId>tarantool-driver-testutil</artifactId>
     <packaging>jar</packaging>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.msgpack</groupId>
-            <artifactId>msgpack-core</artifactId>
-            <version>0.8.14</version>
-        </dependency>
-    </dependencies>
 </project>
