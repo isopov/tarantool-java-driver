@@ -39,5 +39,9 @@ jobs:
         - curl -s https://packagecloud.io/install/repositories/tarantool/2_0/script.deb.sh | sudo bash
         - sudo apt-get -y install tarantool
 
+matrix:
+  allow_failures:
+    - env: TARANTOOL_VERSION=2.0
+
 script: ./mvnw clean package
 
