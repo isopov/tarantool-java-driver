@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.sopovs.moradanen.tarantool</groupId>
+        <groupId>com.github.isopov.tarantool-java-driver</groupId>
         <artifactId>tarantool-driver-parent</artifactId>
         <version>0.0.2-SNAPSHOT</version>
     </parent>
