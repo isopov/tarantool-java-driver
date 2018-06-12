@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.isopov.tarantool-java-driver</groupId>
         <artifactId>tarantool-driver-parent</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
+        <version>0.0.2</version>
     </parent>
     <artifactId>tarantool-spring-boot-session-sample</artifactId>
     <name>Spring Boot Session Sample</name>
