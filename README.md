@@ -18,3 +18,6 @@ Cons (why oficial connector is better)
 * API is certainly more stable - this driver may change in any not foreseeable way 
 * Java 6 support
 
+# Bulding
+* Install tarantool (2+ version to test support of 2+ features) or run it from docker: `docker run -p 3301:3301 --rm -t -i tarantool/tarantool:2`
+* `./mvnw clean package`
