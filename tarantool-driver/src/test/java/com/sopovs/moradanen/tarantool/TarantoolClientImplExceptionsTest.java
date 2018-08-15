@@ -1,94 +1,91 @@
 package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.IntOp;
-import com.sopovs.moradanen.tarantool.core.TarantoolAuthException;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
 import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.*;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.createTestSpace;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.testAuth;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 //TODO - some sort of parameterized tests (maybe with junit5)
-public class TarantoolClientImplExceptionsTest {
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
+class TarantoolClientImplExceptionsTest {
 
     @Test
-    public void testClosedPing() {
+    void testClosedPing() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
             client.close();
-            thrown.expect(TarantoolException.class);
-            client.ping();
+            assertThrows(TarantoolException.class, client::ping);
         }
     }
 
     @Test
-    public void testWrongPassword() {
-        thrown.expect(TarantoolAuthException.class);
-        thrown.expectMessage("Incorrect password supplied for user 'foobar'");
-        testAuth("foobar", "barfoo");
+    void testWrongPassword() {
+        TarantoolException exception = assertThrows(TarantoolException.class,
+                () -> testAuth("foobar", "barfoo")
+        );
+        assertEquals("Incorrect password supplied for user 'foobar'", exception.getMessage());
     }
 
     @Test
-    public void testWrongUser() {
-        thrown.expect(TarantoolAuthException.class);
-        thrown.expectMessage("User 'barfoo' is not found");
-        testAuth("barfoo", "barfoo");
+    void testWrongUser() {
+        assertThrows(TarantoolException.class,
+                () -> testAuth("barfoo", "barfoo"),
+                "User 'barfoo' is not found"
+        );
     }
 
     @Test
-    public void testNoSpace() {
-        thrown.expect(TarantoolException.class);
-        thrown.expectMessage("No such space no_such_space");
+    void testNoSpace() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
-            client.space("no_such_space");
+            assertThrows(TarantoolException.class,
+                    () -> client.space("no_such_space"),
+                    "No such space no_such_space"
+            );
         }
     }
 
     @Test
-    public void testSetIntWithoutInsert() {
+    void testSetIntWithoutInsert() {
         testSetWithoutAction(c -> c.setInt(1));
     }
 
     @Test
-    public void testSetLongWithoutInsert() {
+    void testSetLongWithoutInsert() {
         testSetWithoutAction(c -> c.setLong(1L));
     }
 
     @Test
-    public void testSetFloatWithoutInsert() {
+    void testSetFloatWithoutInsert() {
         testSetWithoutAction(c -> c.setFloat(0F));
     }
 
     @Test
-    public void testSetDoubleWithoutInsert() {
+    void testSetDoubleWithoutInsert() {
         testSetWithoutAction(c -> c.setDouble(0D));
     }
 
     @Test
-    public void testSetBooleanWithoutInsert() {
+    void testSetBooleanWithoutInsert() {
         testSetWithoutAction(c -> c.setBoolean(false));
     }
 
     @Test
-    public void testSetNullWithoutInsert() {
+    void testSetNullWithoutInsert() {
         testSetWithoutAction(TarantoolClient::setNull);
     }
 
     @Test
-    public void testChangeWithoutUpdate() {
+    void testChangeWithoutUpdate() {
         testException(PRE_CHANGE_EXCEPTION, c -> c.change(IntOp.AND, 1, 1));
     }
 
     @Test
-    public void testChangeAfterInsert() {
+    void testChangeAfterInsert() {
         testException(PRE_CHANGE_EXCEPTION, c -> {
             c.insert(42);
             c.change(IntOp.AND, 1, 1);
@@ -96,7 +93,7 @@ public class TarantoolClientImplExceptionsTest {
     }
 
     @Test
-    public void testChangeAfterSelect() {
+    void testChangeAfterSelect() {
         testException(PRE_CHANGE_EXCEPTION, c -> {
             c.select(42, 1);
             c.change(IntOp.AND, 1, 1);
@@ -104,158 +101,142 @@ public class TarantoolClientImplExceptionsTest {
     }
 
     @Test
-    public void testExecuteWithoutAction() {
+    void testExecuteWithoutAction() {
         testException(EXECUTE_ABSENT_EXCEPTION, TarantoolClient::execute);
     }
 
     @Test
-    public void testDoubleEvalWithoutExecute() {
+    void testDoubleEvalWithoutExecute() {
         testPreActionCheck(c -> c.eval("foobar"));
     }
 
     @Test
-    public void testDoubleSelectWithoutExecute() {
+    void testDoubleSelectWithoutExecute() {
         testPreActionCheck(c -> c.select(42, 1));
     }
 
     @Test
-    public void testDoubleInsertWithoutExecute() {
+    void testDoubleInsertWithoutExecute() {
         testPreActionCheck(c -> c.insert(42));
     }
 
     @Test
-    public void testDoubleUpdateWithoutExecute() {
+    void testDoubleUpdateWithoutExecute() {
         testPreActionCheck(c -> c.update(42, 1));
     }
 
     @Test
-    public void testDoubleUpsertWithoutExecute() {
+    void testDoubleUpsertWithoutExecute() {
         testPreActionCheck(c -> c.upsert(42));
     }
 
     @Test
-    public void testGetIntNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getInt(1));
+    void testGetIntNull() {
+        testSelectNull(result -> result.getInt(1), "Expected integer, but got null");
     }
 
     @Test
-    public void testGetIntString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getInt(1));
+    void testGetIntString() {
+        testSelectString(result -> result.getInt(1), "Expected integer, but got string");
     }
 
     @Test
-    public void testGetFloatNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getFloat(1));
+    void testGetFloatNull() {
+        testSelectNull(result -> result.getFloat(1), "Expected float, but got null");
     }
 
     @Test
-    public void testGetFloatString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getFloat(1));
+    void testGetFloatString() {
+        testSelectString(result -> result.getFloat(1), "Expected float, but got string");
     }
 
     @Test
-    public void testGetLongNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getLong(1));
+    void testGetLongNull() {
+        testSelectNull(result -> result.getLong(1), "Expected integer, but got null");
     }
 
     @Test
-    public void testGetLongString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getLong(1));
+    void testGetLongString() {
+        testSelectString(result -> result.getLong(1), "Expected integer, but got string");
     }
 
     @Test
-    public void testGetDoubleNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getDouble(1));
+    void testGetDoubleNull() {
+        testSelectNull(result -> result.getDouble(1), "Expected float, but got null");
     }
 
     @Test
-    public void testGetDoubleString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getDouble(1));
+    void testGetDoubleString() {
+        testSelectString(result -> result.getDouble(1), "Expected float, but got string");
     }
 
     @Test
-    public void testGetBooleanNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getBoolean(1));
+    void testGetBooleanNull() {
+        testSelectNull(result -> result.getBoolean(1), "Expected boolean, but got null");
     }
 
     @Test
-    public void testGetBooleanString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getBoolean(1));
+    void testGetBooleanString() {
+        testSelectString(result -> result.getBoolean(1), "Expected boolean, but got string");
     }
 
     @Test
-    public void testGetStringNull() throws Exception {
+    void testGetStringNull() {
         testSelectNull(result -> assertNull(result.getString(1)));
     }
 
     @Test
-    public void testGetStringDouble() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectDouble(result -> assertNull(result.getString(1)));
+    void testGetStringDouble() {
+        testSelectDouble(result -> result.getString(1), "Expected string, but got float");
+    }
+
+
+    @Test
+    void testGetBooleanDouble() {
+        testSelectDouble(result -> result.getBoolean(1), "Expected boolean, but got float");
     }
 
     @Test
-    public void testGetBytesNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getBytes(1));
+    void testGetBytesNull() {
+        testSelectNull(result -> result.getBytes(1), "Expected binary, but got null");
     }
 
     @Test
-    public void testGetBytesString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getBytes(1));
+    void testGetBytesString() {
+        testSelectString(result -> result.getBytes(1), "Expected binary, but got string");
     }
 
     @Test
-    public void testGetByteBufferNull() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectNull(result -> result.getByteBuffer(1));
+    void testGetByteBufferNull() {
+        testSelectNull(result -> result.getByteBuffer(1), "Expected binary, but got null");
     }
 
     @Test
-    public void testGetByteBufferString() throws Exception {
-        thrown.expect(TarantoolException.class);
-        // TODO message
-        testSelectString(result -> result.getByteBuffer(1));
+    void testGetByteBufferString() {
+        testSelectString(result -> result.getByteBuffer(1), "Expected binary, but got string");
     }
 
-    private static void testSelectString(Consumer<Result> getter) throws Exception {
-        testSetAndSelect(client -> client.setString("foobar"), getter);
+    private static void testSelectString(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(client -> client.setString("foobar"), getter, getterException);
     }
 
-    private static void testSelectNull(Consumer<Result> getter) throws Exception {
+    private static void testSelectNull(Consumer<Result> getter) {
         testSetAndSelect(TarantoolClient::setNull, getter);
     }
 
-    private static void testSelectDouble(Consumer<Result> getter) throws Exception {
-        testSetAndSelect(client -> client.setDouble(42D), getter);
+    private static void testSelectNull(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(TarantoolClient::setNull, getter, getterException);
     }
 
-    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter) throws Exception {
+    private static void testSelectDouble(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(client -> client.setDouble(42D), getter, getterException);
+    }
+
+    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter) {
+        testSetAndSelect(setter, getter, null);
+    }
+
+    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter, String getterException) {
         try (TarantoolClient client = new TarantoolClientImpl("localhost");
              AutoCloseable ignored = () -> client.evalFully("box.space.javatest:drop()")) {
 
@@ -274,15 +255,24 @@ public class TarantoolClientImplExceptionsTest {
             Result first = client.execute();
             assertEquals(1, first.getSize());
             first.next();
-            getter.accept(first);
+            if (getterException != null) {
+                TarantoolException exception = assertThrows(TarantoolException.class, () -> getter.accept(first));
+                assertEquals(getterException, exception.getMessage());
+            } else {
+                getter.accept(first);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
+
     private void testException(String message, Consumer<TarantoolClient> setter) {
-        thrown.expect(TarantoolException.class);
-        thrown.expectMessage(message);
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
-            setter.accept(client);
+            assertThrows(TarantoolException.class,
+                    () -> setter.accept(client),
+                    message
+            );
         }
     }
 
@@ -296,5 +286,4 @@ public class TarantoolClientImplExceptionsTest {
             action.accept(c);
         });
     }
-
 }

@@ -1,11 +1,16 @@
 package com.sopovs.moradanen.tarantool.core;
 
-import org.junit.Test;
 
-public class AssertTest {
+import org.junit.jupiter.api.Test;
 
-    @Test(expected = AssertionError.class)
-    public void testAssert() {
-        assert false : "Make sure to run tests with asserts enabled";
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class AssertTest {
+
+    @Test
+    void testAssert() {
+        assertThrows(AssertionError.class, () -> {
+            assert false : "Make sure to run tests with asserts enabled";
+        });
     }
 }

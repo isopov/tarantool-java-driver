@@ -1,16 +1,18 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TarantoolDriverTest {
+
+class TarantoolDriverTest {
 
     @Test
-    public void testUrlParsing() throws SQLException {
+    void testUrlParsing() throws SQLException {
         TarantoolDriver driver = new TarantoolDriver();
         DriverPropertyInfo[] props = driver.getPropertyInfo("jdbc:tarantool://localhost:3301?user=foo&password=bar", null);
         assertEquals("host", props[0].name);
@@ -25,5 +27,4 @@ public class TarantoolDriverTest {
         assertEquals("password", props[3].name);
         assertEquals("bar", props[3].value);
     }
-
 }
