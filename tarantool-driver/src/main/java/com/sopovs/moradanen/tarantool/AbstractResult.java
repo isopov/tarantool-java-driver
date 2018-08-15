@@ -2,9 +2,11 @@ package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 import org.msgpack.core.MessagePackException;
+import org.msgpack.core.MessageTypeCastException;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ImmutableArrayValue;
 import org.msgpack.value.Value;
+import org.msgpack.value.ValueType;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -58,7 +60,9 @@ public abstract class AbstractResult implements Result {
     public boolean getBoolean(int index) {
         try {
             return current.get(index).asBooleanValue().getBoolean();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected boolean, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -67,7 +71,9 @@ public abstract class AbstractResult implements Result {
     public double getDouble(int index) {
         try {
             return current.get(index).asFloatValue().toDouble();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected float, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -76,7 +82,9 @@ public abstract class AbstractResult implements Result {
     public float getFloat(int index) {
         try {
             return current.get(index).asFloatValue().toFloat();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected float, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -85,7 +93,9 @@ public abstract class AbstractResult implements Result {
     public long getLong(int index) {
         try {
             return current.get(index).asIntegerValue().asLong();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected integer, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -94,7 +104,9 @@ public abstract class AbstractResult implements Result {
     public int getInt(int index) {
         try {
             return current.get(index).asIntegerValue().asInt();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected integer, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -107,7 +119,9 @@ public abstract class AbstractResult implements Result {
         }
         try {
             return value.asStringValue().asString();
-        } catch (MessagePackException e) {
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected string, but got " + decode(current.get(index).getValueType()), e);
+        }catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
     }
@@ -116,6 +130,9 @@ public abstract class AbstractResult implements Result {
     public byte[] getBytes(int index) {
         try {
             return current.get(index).asBinaryValue().asByteArray();
+
+        }catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected binary, but got " + decode(current.get(index).getValueType()), e);
         } catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
@@ -125,8 +142,28 @@ public abstract class AbstractResult implements Result {
     public ByteBuffer getByteBuffer(int index) {
         try {
             return current.get(index).asBinaryValue().asByteBuffer();
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected binary, but got " + decode(current.get(index).getValueType()), e);
         } catch (MessagePackException e) {
             throw new TarantoolException(e);
+        }
+    }
+
+    private static String decode(ValueType valueType) {
+        switch (valueType) {
+            case NIL:
+                return "null";
+            case MAP:
+            case ARRAY:
+            case FLOAT:
+            case BINARY:
+            case STRING:
+            case BOOLEAN:
+            case INTEGER:
+            case EXTENSION:
+                return valueType.toString().toLowerCase();
+            default:
+                throw new TarantoolException("Unknown msgpack value type " + valueType);
         }
     }
 

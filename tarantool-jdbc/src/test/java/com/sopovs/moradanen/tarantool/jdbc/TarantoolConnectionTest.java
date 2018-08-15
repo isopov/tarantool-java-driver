@@ -3,23 +3,21 @@ package com.sopovs.moradanen.tarantool.jdbc;
 import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
 import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class TarantoolConnectionTest {
+class TarantoolConnectionTest {
 
-    @Before
-    public void setup() {
+    @BeforeAll
+    static void setup() {
         assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
     }
 
@@ -51,7 +49,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testSimple() throws SQLException {
+    void testSimple() throws SQLException {
 
         testOneSelect("Foobar", res -> {
             try {
@@ -65,7 +63,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetByte() throws SQLException {
+    void testWasNullGetByte() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertEquals(0, res.getByte("COLUMN2"));
@@ -78,7 +76,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetShort() throws SQLException {
+    void testWasNullGetShort() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertEquals(0, res.getShort("COLUMN2"));
@@ -91,7 +89,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetInt() throws SQLException {
+    void testWasNullGetInt() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertEquals(0, res.getInt("COLUMN2"));
@@ -104,7 +102,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetLong() throws SQLException {
+    void testWasNullGetLong() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertEquals(0, res.getLong("COLUMN2"));
@@ -117,7 +115,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetString() throws SQLException {
+    void testWasNullGetString() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertNull(res.getString("COLUMN2"));
@@ -130,7 +128,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetObject() throws SQLException {
+    void testWasNullGetObject() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertNull(res.getObject("COLUMN2"));
@@ -143,7 +141,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetRef() throws SQLException {
+    void testWasNullGetRef() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertNull(res.getRef("COLUMN2"));
@@ -156,7 +154,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetBlob() throws SQLException {
+    void testWasNullGetBlob() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertNull(res.getBlob("COLUMN2"));
@@ -169,7 +167,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testWasNullGetClob() throws SQLException {
+    void testWasNullGetClob() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertNull(res.getClob("COLUMN2"));
@@ -182,7 +180,7 @@ public class TarantoolConnectionTest {
     }
 
     @Test
-    public void testFindColumn() throws SQLException {
+    void testFindColumn() throws SQLException {
         testOneSelect(null, res -> {
             try {
                 assertEquals(1, res.findColumn("COLUMN1"));
@@ -196,7 +194,7 @@ public class TarantoolConnectionTest {
 
 
     @Test
-    public void testBatch() throws SQLException {
+    void testBatch() throws SQLException {
         try (TarantoolClient client = new TarantoolClientImpl("localhost");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolStatement st = con.createStatement()) {
@@ -220,30 +218,32 @@ public class TarantoolConnectionTest {
         }
     }
 
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-
     @Test
-    public void testMissingFirstParameterExecute() throws SQLException {
+    void testMissingFirstParameterExecute() throws SQLException {
         try (TarantoolClient client = new TarantoolClientImpl("localhost");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
             pst.setString(2, "foobar");
-            thrown.expect(SQLException.class);
-            thrown.expectMessage("Parameter 1 is not set");
-            pst.executeQuery();
+
+            assertThrows(SQLException.class,
+                    pst::executeQuery,
+                    "Parameter 1 is not set"
+            );
         }
     }
 
     @Test
-    public void testMissingFirstParameterUpdate() throws SQLException {
+    void testMissingFirstParameterUpdate() throws SQLException {
         try (TarantoolClient client = new TarantoolClientImpl("localhost");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
             pst.setString(2, "foobar");
-            thrown.expect(SQLException.class);
-            thrown.expectMessage("Parameter 1 is not set");
-            pst.executeUpdate();
+
+
+            assertThrows(SQLException.class,
+                    pst::executeUpdate,
+                    "Parameter 1 is not set"
+            );
         }
     }
 }

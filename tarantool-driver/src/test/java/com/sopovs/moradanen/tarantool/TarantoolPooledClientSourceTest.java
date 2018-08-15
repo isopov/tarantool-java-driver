@@ -4,9 +4,7 @@ import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.Iter;
 import com.sopovs.moradanen.tarantool.core.Op;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,17 +13,15 @@ import java.util.function.Function;
 
 import static com.sopovs.moradanen.tarantool.TarantoolPooledClientSource.CONNECTION_CLOSED;
 import static com.sopovs.moradanen.tarantool.TarantoolPooledClientSource.POOL_CLOSED;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class TarantoolPooledClientSourceTest {
+
+class TarantoolPooledClientSourceTest {
     private static final TarantoolConfig DUMMY_CONFIG = new TarantoolConfig(null, 0, null, null);
     private static final int POOL_SIZE = 5;
 
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-
     @Test
-    public void testSimple() {
+    void testSimple() {
         //noinspection EmptyTryBlock
         try (TarantoolClientSource ignored = createPool()) {
         }
@@ -40,7 +36,7 @@ public class TarantoolPooledClientSourceTest {
     }
 
     @Test
-    public void releaseWaiterOnPoolClose() throws Exception {
+    void releaseWaiterOnPoolClose() throws Exception {
         ExecutorService threadPool = Executors.newFixedThreadPool(POOL_SIZE);
         List<Future<?>> futures = new ArrayList<>();
         try (TarantoolClientSource pool = createPool(0)) {
@@ -68,21 +64,21 @@ public class TarantoolPooledClientSourceTest {
     }
 
     @Test
-    public void testGet1Connection() {
+    void testGet1Connection() {
         //noinspection EmptyTryBlock
         try (TarantoolClientSource pool = createPool(); TarantoolClient ignored = pool.getClient()) {
         }
     }
 
     @Test
-    public void testGetAllConnections() throws Exception {
+    void testGetAllConnections() throws Exception {
         try (TarantoolClientSource pool = createPool()) {
             testGetAllConnectionsInternal(pool);
         }
     }
 
     @Test
-    public void testGetAllConnectionsAfterException() throws Exception {
+    void testGetAllConnectionsAfterException() throws Exception {
         try (TarantoolClientSource pool = createPool()) {
             try (TarantoolClient client = pool.getClient()) {
                 client.ping();
@@ -115,12 +111,12 @@ public class TarantoolPooledClientSourceTest {
     }
 
     @Test
-    public void testPoolSize() {
+    void testPoolSize() {
         testReuseOneConnection(1);
     }
 
     @Test
-    public void testReuseConnectionWhenPossible() {
+    void testReuseConnectionWhenPossible() {
         testReuseOneConnection(2);
     }
 
@@ -143,7 +139,7 @@ public class TarantoolPooledClientSourceTest {
     }
 
     @Test
-    public void testSimpleConnectionReuse() {
+    void testSimpleConnectionReuse() {
         try (TarantoolClientSource pool = createPool(1)) {
             for (int i = 0; i < 10; i++) {
                 pool.getClient().close();
@@ -152,18 +148,18 @@ public class TarantoolPooledClientSourceTest {
     }
 
     @Test
-    public void testUseConnectionAfterClose() {
+    void testUseConnectionAfterClose() {
         try (TarantoolClientSource pool = createPool(1)) {
             TarantoolClient client = pool.getClient();
             client.close();
-            thrown.expect(TarantoolException.class);
-            thrown.expectMessage(CONNECTION_CLOSED);
-            client.ping();
+
+            TarantoolException exception = assertThrows(TarantoolException.class, client::ping);
+            assertEquals(CONNECTION_CLOSED, exception.getMessage());
         }
     }
 
     @Test
-    public void testCloseWithWaiting() throws Exception {
+    void testCloseWithWaiting() throws Exception {
         TarantoolClientSource pool = createPool(0);
         pool.close();
         ExecutorService threadPool = Executors.newFixedThreadPool(1);
@@ -177,12 +173,16 @@ public class TarantoolPooledClientSourceTest {
         });
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
-        thrown.expect(TarantoolException.class);
-        thrown.expectMessage(POOL_CLOSED);
-        throw future.get();
+
+        TarantoolException exception = assertThrows(TarantoolException.class,
+                () -> {
+                    throw future.get();
+                }
+        );
+        assertEquals(POOL_CLOSED, exception.getMessage());
     }
 
-    public static class DummyTarantoolClient implements TarantoolClient {
+    static class DummyTarantoolClient implements TarantoolClient {
 
         DummyTarantoolClient(@SuppressWarnings("unused") TarantoolConfig config) {
             // dummy

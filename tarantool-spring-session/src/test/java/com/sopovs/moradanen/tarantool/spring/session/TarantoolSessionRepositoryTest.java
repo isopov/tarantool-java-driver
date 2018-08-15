@@ -3,10 +3,9 @@ package com.sopovs.moradanen.tarantool.spring.session;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientSource;
 import com.sopovs.moradanen.tarantool.TarantoolPooledClientSource;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -14,17 +13,18 @@ import java.util.Map;
 
 import static com.sopovs.moradanen.tarantool.spring.session.TarantoolSessionRepository.*;
 import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
-public class TarantoolSessionRepositoryTest {
+class TarantoolSessionRepositoryTest {
 
     private TarantoolClientSource clientSource;
     private TarantoolSessionRepository sessionRepository;
     private TarantoolSession session;
 
-    @Before
-    public void setUp() {
-        Assume.assumeFalse(getEnvTarantoolVersion().startsWith("1.6"));
+    @BeforeEach
+    void setUp() {
+        assumeFalse(getEnvTarantoolVersion().startsWith("1.6"));
         clientSource = new TarantoolPooledClientSource("localhost", 3301, 1);
         sessionRepository = new TarantoolSessionRepository(clientSource);
         sessionRepository.createSpaces();
@@ -32,8 +32,8 @@ public class TarantoolSessionRepositoryTest {
         assertNotNull(session.getId());
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         if (clientSource == null) {
             return;
         }
@@ -45,48 +45,48 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testCreateSpacesIfNotExist() {
+    void testCreateSpacesIfNotExist() {
         sessionRepository.createSpaces();
     }
 
     @Test
-    public void testSaveEmpty() {
+    void testSaveEmpty() {
         sessionRepository.save(session);
     }
 
     @Test
-    public void testDoubleSaveEmpty() {
+    void testDoubleSaveEmpty() {
         sessionRepository.save(session);
         sessionRepository.save(session);
     }
 
     @Test
-    public void testSaveWithPrincipalName() {
+    void testSaveWithPrincipalName() {
         session.setAttribute(PRINCIPAL_NAME_INDEX_NAME, "foobar");
         sessionRepository.save(session);
     }
 
     @Test
-    public void testDoubleSaveWithPrincipalName() {
+    void testDoubleSaveWithPrincipalName() {
         testSaveWithPrincipalName();
         sessionRepository.save(session);
     }
 
     @Test
-    public void testSaveChangedSessionId() {
+    void testSaveChangedSessionId() {
         sessionRepository.save(session);
         session.changeSessionId();
         sessionRepository.save(session);
     }
 
     @Test
-    public void testFindById() {
+    void testFindById() {
         sessionRepository.save(session);
         assertSessionEquals(sessionRepository.findById(session.getId()));
     }
 
     @Test
-    public void testFindByIdWithPrincipalName() {
+    void testFindByIdWithPrincipalName() {
         testSaveWithPrincipalName();
         TarantoolSession got = sessionRepository.findById(session.getId());
         assertSessionEquals(got);
@@ -95,19 +95,19 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testDeleteByIdNotSaved() {
+    void testDeleteByIdNotSaved() {
         sessionRepository.deleteById(session.getId());
     }
 
     @Test
-    public void testDeleteById() {
+    void testDeleteById() {
         sessionRepository.save(session);
         sessionRepository.deleteById(session.getId());
         assertNull(sessionRepository.findById(session.getId()));
     }
 
     @Test
-    public void testDeleteByIdWIthAttribute() {
+    void testDeleteByIdWIthAttribute() {
         session.setAttribute("foo", "bar");
         sessionRepository.save(session);
         sessionRepository.deleteById(session.getId());
@@ -122,7 +122,7 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testRemoveAttribute() {
+    void testRemoveAttribute() {
         session.setAttribute("foo", "bar");
         sessionRepository.save(session);
         assertSessionEquals(sessionRepository.findById(session.getId()));
@@ -135,14 +135,14 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testFindByNewlyChangedId() {
+    void testFindByNewlyChangedId() {
         session.changeSessionId();
         sessionRepository.save(session);
         assertSessionEquals(sessionRepository.findById(session.getId()));
     }
 
     @Test
-    public void testFindByChangedId() {
+    void testFindByChangedId() {
         sessionRepository.save(session);
         String prevId = session.getId();
         session.changeSessionId();
@@ -168,7 +168,7 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testFindByIndexNameAndIndexValue() {
+    void testFindByIndexNameAndIndexValue() {
         testSaveWithPrincipalName();
         Map<String, TarantoolSession> result = sessionRepository.findByIndexNameAndIndexValue(PRINCIPAL_NAME_INDEX_NAME,
                 "foobar");
@@ -177,7 +177,7 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testFind2ByIndexNameAndIndexValue() {
+    void testFind2ByIndexNameAndIndexValue() {
         testSaveWithPrincipalName();
 
         TarantoolSession session2 = sessionRepository.createSession();
@@ -192,7 +192,7 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testEqualEpirations() {
+    void testEqualEpirations() {
         TarantoolSession session2 = sessionRepository.createSession();
         Instant now = Instant.now();
         session.setLastAccessedTime(now);
@@ -205,7 +205,7 @@ public class TarantoolSessionRepositoryTest {
     }
 
     @Test
-    public void testCleanUpExpiredSessions() {
+    void testCleanUpExpiredSessions() {
         session.setLastAccessedTime(Instant.now().minus(Duration.ofDays(100)));
         sessionRepository.save(session);
         assertSessionEquals(sessionRepository.findById(session.getId()));
