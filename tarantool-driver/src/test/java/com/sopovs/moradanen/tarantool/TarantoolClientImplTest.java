@@ -44,6 +44,15 @@ class TarantoolClientImplTest {
     }
 
     @Test
+    void test2Ping() {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+            client.ping();
+            client.ping();
+        }
+    }
+
+
+    @Test
     void testSelect() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
             selectInternal(client);
