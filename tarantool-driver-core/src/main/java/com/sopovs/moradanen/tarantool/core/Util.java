@@ -40,14 +40,13 @@ public final class Util {
     public static final int KEY_DATA = 0x30;
     public static final int KEY_ERROR = 0x31;
     // SQL
-    public static final int KEY_FIELD_NAME = 0x29;
+    public static final int KEY_FIELD_NAME = 0;
     public static final int KEY_METADATA = 0x32;
     public static final int KEY_SQL_TEXT = 0x40;
     public static final int KEY_SQL_BIND = 0x41;
-    public static final int KEY_SQL_OPTIONS = 0x42;
-    public static final int KEY_SQL_INFO = 0x43;
-    public static final int KEY_SQL_ROW_COUNT = 0x44;
+    public static final int KEY_SQL_INFO = 0x42;
 
+    public static final int KEY_SQL_ROW_COUNT = 0;
 
     public static final int SPACE_SCHEMA = 272;
     public static final int SPACE_SPACE = 280;
