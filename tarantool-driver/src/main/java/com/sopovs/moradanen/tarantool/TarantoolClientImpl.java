@@ -176,7 +176,7 @@ public class TarantoolClientImpl implements TarantoolClient {
             }
             int sqlInfo = unpacker.unpackInt();
             if (sqlInfo != Util.KEY_SQL_ROW_COUNT) {
-                throw new TarantoolException("Expected SQL_INFO(" + Util.KEY_SQL_INFO + "), but got " + sqlInfo);
+                throw new TarantoolException("Expected KEY_SQL_ROW_COUNT(" + Util.KEY_SQL_ROW_COUNT + "), but got " + sqlInfo);
             }
             return unpacker.unpackInt();
         } catch (IOException e) {
