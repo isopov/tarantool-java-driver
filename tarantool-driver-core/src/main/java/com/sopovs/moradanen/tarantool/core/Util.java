@@ -23,6 +23,7 @@ public final class Util {
     public static final int CODE_PING = 64;
     public static final int CODE_SUBSCRIBE = 66;
 
+    public static final int KEY_OK = 0x00;
     public static final int KEY_SYNC = 0x01;
     public static final int KEY_SCHEMA_ID = 0x05;
     // body
@@ -39,6 +40,7 @@ public final class Util {
     public static final int KEY_UPSERT_OPS = 0x28;
     public static final int KEY_DATA = 0x30;
     public static final int KEY_ERROR = 0x31;
+    public static final int IPROTO_CHUNK = 128;
     // SQL
     public static final int KEY_FIELD_NAME = 0;
     public static final int KEY_METADATA = 0x32;

@@ -109,9 +109,9 @@ public class TarantoolClientImpl implements TarantoolClient {
         }
     }
 
-    private Result getSingleResult() {
+    private Result getSingleResult(PushCallback pushCallback) {
         try {
-            int bodySize = flushAndGetResultSize(true);
+            int bodySize = flushAndGetResultSize(true, pushCallback);
             if (bodySize == 1) {
                 byte bodyKey = unpacker.unpackByte();
                 if (bodyKey == Util.KEY_DATA) {
@@ -132,12 +132,12 @@ public class TarantoolClientImpl implements TarantoolClient {
     }
 
     @Override
-    public Result execute() {
+    public Result execute(PushCallback pushCallback) {
         if (batchSize > 0) {
             executeBatch();
         }
         finishQueryWithArguments();
-        return getSingleResult();
+        return getSingleResult(pushCallback);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
     private int getUpdateResult() {
         try {
-            int bodySize = flushAndGetResultSize(true);
+            int bodySize = flushAndGetResultSize(true, NOOP_PUSH_CALLBACK);
             if (1 != bodySize) {
                 throw new TarantoolException("Body size is " + bodySize);
             }
@@ -184,12 +184,32 @@ public class TarantoolClientImpl implements TarantoolClient {
         }
     }
 
-    private int flushAndGetResultSize(boolean batch) throws IOException {
+    private int flushAndGetResultSize(boolean batch, PushCallback pushCallback) throws IOException {
         out.flush();
 
         // TODO expose byte size to Result?
         unpacker.unpackInt();
-        unpackHeader(batch);
+        boolean chunked = unpackHeader(batch);
+        while (chunked) {
+            int size = unpacker.unpackMapHeader();
+            if (size == 1) {
+                byte bodyKey = unpacker.unpackByte();
+                if (bodyKey == Util.KEY_DATA) {
+                    pushCallback.onPush(new ArrayResult(unpacker));
+
+                    // TODO expose byte size
+                    unpacker.unpackInt();
+                    chunked = unpackHeader(batch);
+                } else if (bodyKey == Util.KEY_ERROR) {
+                    throw new TarantoolException(unpacker.unpackString());
+                } else {
+                    throw new TarantoolException("Unknown body Key " + bodyKey);
+                }
+            } else {
+                throw new TarantoolException("unexpected chunk map size " + size);
+            }
+
+        }
         return unpacker.unpackMapHeader();
     }
 
@@ -227,7 +247,8 @@ public class TarantoolClientImpl implements TarantoolClient {
     @Override
     public void executeBatch() {
         for (int i = 0; i < batchSize; i++) {
-            Result result = getSingleResult();
+            //TODO push callback
+            Result result = getSingleResult(NOOP_PUSH_CALLBACK);
             result.consume();
         }
         batchSize = 0;
@@ -328,7 +349,8 @@ public class TarantoolClientImpl implements TarantoolClient {
         out.writeInt(size);
     }
 
-    private void unpackHeader(boolean batch) throws IOException {
+    private boolean unpackHeader(boolean batch) throws IOException {
+        boolean chunked = false;
         int headerSize = unpacker.unpackMapHeader();
         for (int i = 0; i < headerSize; i++) {
             byte key = unpacker.unpackByte();
@@ -341,10 +363,17 @@ public class TarantoolClientImpl implements TarantoolClient {
                 } else if (sync != counter) {
                     throw new TarantoolException("Expected sync = " + counter + " and came " + sync);
                 }
-            } else {
+            } else if (key == Util.KEY_SCHEMA_ID) {
+                //TODO return schema version in result
                 unpacker.unpackInt();
+            } else if (key == Util.KEY_OK) {
+                int type = unpacker.unpackInt();
+                if (type == Util.IPROTO_CHUNK) {
+                    chunked = true;
+                }
             }
         }
+        return chunked;
     }
 
     private String parseGreeting() throws IOException {
@@ -374,7 +403,7 @@ public class TarantoolClientImpl implements TarantoolClient {
             packer.packBinaryHeader(20);
             packer.addPayload(scramble(password, salt));
             finishQuery();
-            int bodySize = flushAndGetResultSize(false);
+            int bodySize = flushAndGetResultSize(false, NOOP_PUSH_CALLBACK);
             if (bodySize == 1) {
                 byte bodyKey = unpacker.unpackByte();
                 if (bodyKey == Util.KEY_ERROR) {
@@ -477,7 +506,7 @@ public class TarantoolClientImpl implements TarantoolClient {
             writeCode(Util.CODE_PING);
             finishQuery();
 
-            int bodySize = flushAndGetResultSize(false);
+            int bodySize = flushAndGetResultSize(false, NOOP_PUSH_CALLBACK);
             if (bodySize != 0) {
                 throw new TarantoolException(bodySize + " body size came from ping");
             }

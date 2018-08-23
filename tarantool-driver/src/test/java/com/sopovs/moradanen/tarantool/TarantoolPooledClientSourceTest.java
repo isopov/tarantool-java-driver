@@ -199,7 +199,7 @@ class TarantoolPooledClientSourceTest {
         }
 
         @Override
-        public Result execute() {
+        public Result execute(PushCallback pushCallback) {
             throw new TarantoolException("Not implemented!");
         }
 

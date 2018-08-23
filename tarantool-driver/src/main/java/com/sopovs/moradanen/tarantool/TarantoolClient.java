@@ -1,12 +1,24 @@
 package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.*;
+import org.msgpack.value.ImmutableValue;
 
 import java.io.Closeable;
 
 public interface TarantoolClient extends Closeable {
+    PushCallback NOOP_PUSH_CALLBACK = result -> {
+        throw new TarantoolException("Unexpected server push!");
+    };
 
-    Result execute();
+    default Result execute(){
+        return execute(NOOP_PUSH_CALLBACK);
+    }
+
+    Result execute(PushCallback pushCallback);
+
+    interface PushCallback {
+        void onPush(Result result);
+    }
 
     void addBatch();
 

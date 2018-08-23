@@ -5,6 +5,7 @@ import com.sopovs.moradanen.tarantool.core.Op;
 import com.sopovs.moradanen.tarantool.core.Util;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
@@ -214,6 +215,32 @@ class TarantoolClientImplTest {
         assertEquals(0, select.getInt(1));
         assertEquals("Foobar", select.getString(2));
     }
+
+
+    @Test
+    void testPush() throws Exception {
+        //TODO normal version comparison
+        assumeTrue(getEnvTarantoolVersion().startsWith("2.0")
+                || getEnvTarantoolVersion().startsWith("1.10"));
+        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+             AutoCloseable ignored = () -> client.evalFully("box.space.javatest:drop()")) {
+
+            client.eval("box.schema.space.create('javatest');"
+                    + "box.space.javatest:create_index('primary', {type = 'hash', parts = {1, 'num'}});"
+                    + "box.session.push({1, 2});"
+                    + "box.session.push({2});"
+                    + "box.session.push({3});"
+            );
+            AtomicInteger counter = new AtomicInteger(0);
+            client.execute(result -> {
+                assertTrue(result.next());
+                counter.addAndGet(result.getInt(0));
+                assertFalse(result.next());
+            }).consume();
+            assertEquals(6, counter.get());
+        }
+    }
+
 
     static void createTestSpace(TarantoolClient client) {
         client.evalFully("box.schema.space.create('javatest')");

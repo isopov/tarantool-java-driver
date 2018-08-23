@@ -130,10 +130,10 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         }
 
         @Override
-        public Result execute() {
+        public Result execute(PushCallback pushCallback) {
             checkClosed();
             try {
-                return client.execute();
+                return client.execute(pushCallback);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
