@@ -3,11 +3,6 @@ package com.sopovs.moradanen.tarantool.benchmarks;
 import com.sopovs.moradanen.tarantool.*;
 import com.sopovs.moradanen.tarantool.core.Iter;
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 import org.tarantool.TarantoolConnection;
 
@@ -153,12 +148,4 @@ public class SingleSelectBenchmark {
         clientSource.close();
         jdbcConnection.close();
     }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder().include(".*" + SingleSelectBenchmark.class.getSimpleName() + ".*")
-                .addProfiler(GCProfiler.class).build();
-
-        new Runner(opt).run();
-    }
-
 }

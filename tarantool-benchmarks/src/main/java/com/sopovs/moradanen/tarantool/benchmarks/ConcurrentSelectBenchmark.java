@@ -3,10 +3,6 @@ package com.sopovs.moradanen.tarantool.benchmarks;
 import com.sopovs.moradanen.tarantool.*;
 import com.sopovs.moradanen.tarantool.core.Iter;
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.tarantool.TarantoolClientConfig;
 
 import java.net.InetSocketAddress;
@@ -18,31 +14,33 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-//Benchmark                                        (type)  Mode  Cnt      Score      Error  Units
-//ConcurrentSelectBenchmark.select        referenceClient  avgt   15    155.582 ±    3.293  us/op
-//ConcurrentSelectBenchmark.select     pooledClientSource  avgt   15    166.061 ±    8.467  us/op
-//ConcurrentSelectBenchmark.select            threadLocal  avgt   15    154.984 ±    1.354  us/op
-//ConcurrentSelectBenchmark.selectAll     referenceClient  avgt   15  60446.579 ± 1454.584  us/op
-//ConcurrentSelectBenchmark.selectAll  pooledClientSource  avgt   15  23729.235 ±  580.103  us/op
-//ConcurrentSelectBenchmark.selectAll         threadLocal  avgt   15  23934.715 ±  762.801  us/op
+//Benchmark                                        (type)  Mode  Cnt      Score     Error  Units
+//ConcurrentSelectBenchmark.select        referenceClient  avgt   15    135.715 ±   0.819  us/op
+//ConcurrentSelectBenchmark.select     pooledClientSource  avgt   15    181.730 ±   1.669  us/op
+//ConcurrentSelectBenchmark.select            threadLocal  avgt   15    180.817 ±   1.310  us/op
+//ConcurrentSelectBenchmark.selectAll     referenceClient  avgt   15  41187.509 ± 522.923  us/op
+//ConcurrentSelectBenchmark.selectAll  pooledClientSource  avgt   15  13861.497 ± 181.352  us/op
+//ConcurrentSelectBenchmark.selectAll         threadLocal  avgt   15  14099.695 ± 125.618  us/op
+
 //
 //
 //Simulating network latency of 100 us with
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 100usec`
 //(To restore `sudo tc qdisc del dev lo root`)
-//Benchmark                                     (type)  Mode  Cnt    Score    Error  Units
-//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  575.669 ± 11.640  us/op
-//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  320.201 ±  4.336  us/op
-//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  317.752 ±  4.839  us/op
+//Benchmark                                     (type)  Mode  Cnt    Score     Error  Units
+//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  641.152 ± 160.129  us/op
+//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  314.228 ±   0.637  us/op
+//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  312.966 ±   1.134  us/op
+
 //
 //
 //Simulating network latency of 1ms with
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 1msec`
 //(To restore `sudo tc qdisc del dev lo root`)
 //Benchmark                                     (type)  Mode  Cnt     Score    Error  Units
-//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  4476.049 ± 68.609  us/op
-//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2167.582 ± 17.756  us/op
-//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2164.908 ± 13.743  us/op
+//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  5348.508 ± 69.763  us/op
+//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2668.494 ± 42.226  us/op
+//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2657.087 ± 53.612  us/op
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
@@ -127,23 +125,23 @@ public class ConcurrentSelectBenchmark {
         }
     }
 
-    protected String clientSource() {
+    String clientSource() {
         try (TarantoolClient client = clientSource.getClient()) {
             return fromClient(client);
         }
     }
 
-    protected List<String> threadLocalAll() {
+    List<String> threadLocalAll() {
         return fromClientAll(threadLocalClient.get());
     }
 
-    protected List<String> clientSourceAll() {
+    List<String> clientSourceAll() {
         try (TarantoolClient client = clientSource.getClient()) {
             return fromClientAll(client);
         }
     }
 
-    protected String threadLocal() {
+    String threadLocal() {
         return fromClient(threadLocalClient.get());
     }
 
@@ -172,7 +170,7 @@ public class ConcurrentSelectBenchmark {
         return result;
     }
 
-    protected String referenceClient() {
+    String referenceClient() {
         int key = ThreadLocalRandom.current().nextInt(size);
         List<?> result = referenceClient.syncOps().select(space, 0, Collections.singletonList(key), 0,
                 Integer.MAX_VALUE, Iter.EQ.getValue());
@@ -182,13 +180,16 @@ public class ConcurrentSelectBenchmark {
         return (String) ((List<?>) result.get(0)).get(1);
     }
 
-    protected List<String> referenceClientAll() {
+    List<String> referenceClientAll() {
         List<?> result = referenceClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
                 Iter.ALL.getValue());
         if (result.size() != size) {
             throw new IllegalStateException();
         }
-        return result.stream().map(List.class::cast).map(row -> row.get(1)).map(String.class::cast)
+        return result.stream()
+                .map(List.class::cast)
+                .map(row -> row.get(1))
+                .map(String.class::cast)
                 .collect(Collectors.toList());
     }
 
@@ -211,12 +212,4 @@ public class ConcurrentSelectBenchmark {
                 throw new IllegalStateException();
         }
     }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder().include(".*" + ConcurrentSelectBenchmark.class.getSimpleName() + ".*")
-                .build();
-
-        new Runner(opt).run();
-    }
-
 }

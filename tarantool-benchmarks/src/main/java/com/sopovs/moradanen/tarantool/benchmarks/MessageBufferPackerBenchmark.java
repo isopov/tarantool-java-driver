@@ -97,14 +97,4 @@ public class MessageBufferPackerBenchmark {
         }
         bh.consume(size);
     }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(".*" + MessageBufferPackerBenchmark.class.getSimpleName() + ".*")
-                .addProfiler(GCProfiler.class)
-                .build();
-
-        new Runner(opt).run();
-    }
-
 }
