@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.IntOp;
+import com.sopovs.moradanen.tarantool.core.Nullable;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,56 @@ import static org.junit.jupiter.api.Assertions.*;
 
 //TODO - some sort of parameterized tests (maybe with junit5)
 class TarantoolClientImplExceptionsTest {
+
+    private static void testSelectString(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(client -> client.setString("foobar"), getter, getterException);
+    }
+
+    private static void testSelectNull(Consumer<Result> getter) {
+        testSetAndSelect(TarantoolClient::setNull, getter);
+    }
+
+    private static void testSelectNull(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(TarantoolClient::setNull, getter, getterException);
+    }
+
+    private static void testSelectDouble(Consumer<Result> getter, String getterException) {
+        testSetAndSelect(client -> client.setDouble(42D), getter, getterException);
+    }
+
+    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter) {
+        testSetAndSelect(setter, getter, null);
+    }
+
+    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter, @Nullable String getterException) {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+             AutoCloseable ignored = () -> client.evalFully("box.space.javatest:drop()")) {
+
+            createTestSpace(client);
+
+            client.insert("javatest");
+            client.setInt(1);
+            setter.accept(client);
+
+            Result insert = client.execute();
+            assertEquals(1, insert.getSize());
+            insert.consume();
+
+            client.select(client.space("javatest"), 0);
+            client.setInt(1);
+            Result first = client.execute();
+            assertEquals(1, first.getSize());
+            first.next();
+            if (getterException != null) {
+                TarantoolException exception = assertThrows(TarantoolException.class, () -> getter.accept(first));
+                assertEquals(getterException, exception.getMessage());
+            } else {
+                getter.accept(first);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Test
     void testClosedPing() {
@@ -190,7 +241,6 @@ class TarantoolClientImplExceptionsTest {
         testSelectDouble(result -> result.getString(1), "Expected string, but got float");
     }
 
-
     @Test
     void testGetBooleanDouble() {
         testSelectDouble(result -> result.getBoolean(1), "Expected boolean, but got float");
@@ -215,57 +265,6 @@ class TarantoolClientImplExceptionsTest {
     void testGetByteBufferString() {
         testSelectString(result -> result.getByteBuffer(1), "Expected binary, but got string");
     }
-
-    private static void testSelectString(Consumer<Result> getter, String getterException) {
-        testSetAndSelect(client -> client.setString("foobar"), getter, getterException);
-    }
-
-    private static void testSelectNull(Consumer<Result> getter) {
-        testSetAndSelect(TarantoolClient::setNull, getter);
-    }
-
-    private static void testSelectNull(Consumer<Result> getter, String getterException) {
-        testSetAndSelect(TarantoolClient::setNull, getter, getterException);
-    }
-
-    private static void testSelectDouble(Consumer<Result> getter, String getterException) {
-        testSetAndSelect(client -> client.setDouble(42D), getter, getterException);
-    }
-
-    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter) {
-        testSetAndSelect(setter, getter, null);
-    }
-
-    private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter, String getterException) {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
-             AutoCloseable ignored = () -> client.evalFully("box.space.javatest:drop()")) {
-
-            createTestSpace(client);
-
-            client.insert("javatest");
-            client.setInt(1);
-            setter.accept(client);
-
-            Result insert = client.execute();
-            assertEquals(1, insert.getSize());
-            insert.consume();
-
-            client.select(client.space("javatest"), 0);
-            client.setInt(1);
-            Result first = client.execute();
-            assertEquals(1, first.getSize());
-            first.next();
-            if (getterException != null) {
-                TarantoolException exception = assertThrows(TarantoolException.class, () -> getter.accept(first));
-                assertEquals(getterException, exception.getMessage());
-            } else {
-                getter.accept(first);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 
     private void testException(String message, Consumer<TarantoolClient> setter) {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {

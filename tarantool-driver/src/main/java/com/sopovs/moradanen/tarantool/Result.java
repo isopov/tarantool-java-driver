@@ -1,5 +1,7 @@
 package com.sopovs.moradanen.tarantool;
 
+import com.sopovs.moradanen.tarantool.core.Nullable;
+
 import java.nio.ByteBuffer;
 
 //TODO Closeable?
@@ -21,6 +23,7 @@ public interface Result {
 
     int getInt(int index);
 
+    @Nullable
     String getString(int index);
 
     byte[] getBytes(int index);

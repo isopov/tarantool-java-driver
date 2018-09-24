@@ -1,9 +1,6 @@
 package com.sopovs.moradanen.tarantool;
 
-import com.sopovs.moradanen.tarantool.core.IntOp;
-import com.sopovs.moradanen.tarantool.core.Iter;
-import com.sopovs.moradanen.tarantool.core.Op;
-import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.*;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
@@ -125,7 +122,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
             return e;
         }
 
-        public TarantoolClientProxy(TarantoolClient client) {
+        TarantoolClientProxy(TarantoolClient client) {
             this.client = client;
         }
 
@@ -271,7 +268,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         }
 
         @Override
-        public void change(Op op, int field, String arg) {
+        public void change(Op op, int field, @Nullable String arg) {
             checkClosed();
             try {
                 client.change(op, field, arg);
@@ -332,7 +329,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         }
 
         @Override
-        public void setString(String val) {
+        public void setString(@Nullable String val) {
             checkClosed();
             try {
                 client.setString(val);

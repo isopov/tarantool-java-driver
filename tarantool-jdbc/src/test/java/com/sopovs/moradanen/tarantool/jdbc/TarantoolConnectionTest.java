@@ -3,6 +3,7 @@ package com.sopovs.moradanen.tarantool.jdbc;
 import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
 import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
+import com.sopovs.moradanen.tarantool.core.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ class TarantoolConnectionTest {
     }
 
 
-    private void testOneSelect(String value, Consumer<TarantoolResultSet> resConsumer) throws SQLException {
+    private void testOneSelect(@Nullable String value, Consumer<TarantoolResultSet> resConsumer) throws SQLException {
         try (TarantoolClient client = new TarantoolClientImpl("localhost");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolStatement st = con.createStatement()) {
