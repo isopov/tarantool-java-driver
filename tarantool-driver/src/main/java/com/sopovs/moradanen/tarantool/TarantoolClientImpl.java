@@ -23,22 +23,6 @@ public class TarantoolClientImpl implements TarantoolClient {
     static final String EXECUTE_ABSENT_EXCEPTION = "Trying to execute absent query";
     static final String PRE_ACTION_EXCEPTION = "Execute or add to batch action before starting next one";
     static final String PRE_SET_EXCEPTION = "Need to call one of update/insert/upsert/delete before setting tuple value";
-
-    private final String version;
-    private final Socket socket;
-    private final MessageUnpacker unpacker;
-    private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
-
-    private final MessageBufferPacker queryPacker = MessagePack.newDefaultBufferPacker();
-    private int querySize = 0;
-
-    private final DataOutputStream out;
-    private int counter;
-    private Result last;
-    private int batchSize = 0;
-
-    private byte currentQuery = 0;
-
     private static final byte INSERT = 1;
     private static final byte UPSERT_TUPLE = 2;
     private static final byte UPSERT_OPS = 3;
@@ -48,6 +32,49 @@ public class TarantoolClientImpl implements TarantoolClient {
     private static final byte UPDATE_KEY = 7;
     private static final byte UPDATE_TUPLE = 8;
     private static final byte SQL = 9;
+    private final String version;
+    private final Socket socket;
+    private final MessageUnpacker unpacker;
+    private final MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+    private final MessageBufferPacker queryPacker = MessagePack.newDefaultBufferPacker();
+    private final DataOutputStream out;
+    private int querySize = 0;
+    private int counter;
+    @Nullable
+    private Result last;
+    private int batchSize = 0;
+    private byte currentQuery = 0;
+
+    public TarantoolClientImpl(TarantoolConfig config) {
+        this(config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
+    }
+
+    public TarantoolClientImpl(@Nullable String host) {
+        this(host, 3301);
+    }
+
+    public TarantoolClientImpl(@Nullable String host, int port) {
+        this(createSocket(host, port));
+    }
+
+    public TarantoolClientImpl(@Nullable String host, int port, @Nullable String login, @Nullable String password) {
+        this(createSocket(host, port), login, password);
+    }
+
+    public TarantoolClientImpl(Socket socket) {
+        this(socket, null, null);
+    }
+
+    public TarantoolClientImpl(Socket socket, @Nullable String login, @Nullable String password) {
+        this.socket = socket;
+        try {
+            unpacker = MessagePack.newDefaultUnpacker(socket.getInputStream());
+            out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+            version = connect(login, password);
+        } catch (IOException e) {
+            throw new TarantoolException(e);
+        }
+    }
 
     private static int currentQueryToQueryCode(byte currentQuery) {
         switch (currentQuery) {
@@ -70,23 +97,7 @@ public class TarantoolClientImpl implements TarantoolClient {
         }
     }
 
-    public TarantoolClientImpl(TarantoolConfig config) {
-        this(config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
-    }
-
-    public TarantoolClientImpl(String host) {
-        this(host, 3301);
-    }
-
-    public TarantoolClientImpl(String host, int port) {
-        this(createSocket(host, port));
-    }
-
-    public TarantoolClientImpl(String host, int port, String login, String password) {
-        this(createSocket(host, port), login, password);
-    }
-
-    private static Socket createSocket(String host, int port) {
+    private static Socket createSocket(@Nullable String host, int port) {
         try {
             return new Socket(host, port);
         } catch (IOException e) {
@@ -94,19 +105,26 @@ public class TarantoolClientImpl implements TarantoolClient {
         }
     }
 
-    public TarantoolClientImpl(Socket socket) {
-        this(socket, null, null);
-    }
-
-    public TarantoolClientImpl(Socket socket, String login, String password) {
-        this.socket = socket;
+    private static byte[] scramble(String password, byte[] salt) {
+        final MessageDigest sha1;
         try {
-            unpacker = MessagePack.newDefaultUnpacker(socket.getInputStream());
-            out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            version = connect(login, password);
-        } catch (IOException e) {
+            sha1 = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
             throw new TarantoolException(e);
         }
+
+        byte[] step1 = sha1.digest(password.getBytes());
+
+        sha1.reset();
+        byte[] step2 = sha1.digest(step1);
+        sha1.reset();
+        sha1.update(Base64.getDecoder().decode(salt), 0, 20);
+        sha1.update(step2);
+        byte[] step3 = sha1.digest();
+        for (int i = 0; i < 20; i++) {
+            step1[i] ^= step3[i];
+        }
+        return step1;
     }
 
     private Result getSingleResult() {
@@ -358,12 +376,12 @@ public class TarantoolClientImpl implements TarantoolClient {
         return parts[1];
     }
 
-    private String connect(String login, String password) throws IOException {
+    private String connect(@Nullable String login, @Nullable String password) throws IOException {
         String version = parseGreeting();
         final byte[] salt = new byte[44];
         unpacker.readPayload(salt);
         unpacker.readPayload(ByteBuffer.allocate(20));// unused
-        if (login != null) {
+        if (login != null && password != null) {
             writeCode(Util.CODE_AUTH);
             packer.packMapHeader(2);
             packer.packInt(Util.KEY_USER_NAME);
@@ -388,28 +406,6 @@ public class TarantoolClientImpl implements TarantoolClient {
             }
         }
         return version;
-    }
-
-    private static byte[] scramble(String password, byte[] salt) {
-        final MessageDigest sha1;
-        try {
-            sha1 = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            throw new TarantoolException(e);
-        }
-
-        byte[] step1 = sha1.digest(password.getBytes());
-
-        sha1.reset();
-        byte[] step2 = sha1.digest(step1);
-        sha1.reset();
-        sha1.update(Base64.getDecoder().decode(salt), 0, 20);
-        sha1.update(step2);
-        byte[] step3 = sha1.digest();
-        for (int i = 0; i < 20; i++) {
-            step1[i] ^= step3[i];
-        }
-        return step1;
     }
 
     @Override
@@ -573,7 +569,7 @@ public class TarantoolClientImpl implements TarantoolClient {
     }
 
     @Override
-    public void setString(String val) {
+    public void setString(@Nullable String val) {
         preSetCheck();
         try {
             querySize++;
@@ -654,7 +650,7 @@ public class TarantoolClientImpl implements TarantoolClient {
     }
 
     @Override
-    public void change(Op op, int field, String arg) {
+    public void change(Op op, int field, @Nullable String arg) {
         try {
             preChange(op.getVal(), field);
             if (arg == null) {

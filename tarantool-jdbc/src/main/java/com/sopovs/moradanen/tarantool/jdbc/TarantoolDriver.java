@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
 import com.sopovs.moradanen.tarantool.TarantoolClientImpl;
+import com.sopovs.moradanen.tarantool.core.Nullable;
 
 import java.sql.*;
 import java.util.Properties;
@@ -19,6 +20,7 @@ public class TarantoolDriver implements Driver {
     }
 
     @Override
+    @Nullable
     public TarantoolConnection connect(String url, Properties info) throws SQLException {
         if (!acceptsURL(url)) {
             return null;

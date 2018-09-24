@@ -5,7 +5,7 @@ import org.msgpack.core.MessageUnpacker;
 
 import java.io.IOException;
 
-public class ArrayResult extends AbstractResult {
+class ArrayResult extends AbstractResult {
     private final int size;
 
     ArrayResult(MessageUnpacker unpacker) {

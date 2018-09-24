@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.tarantool.jdbc;
 
 import com.sopovs.moradanen.tarantool.SqlResult;
+import com.sopovs.moradanen.tarantool.core.Nullable;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 import java.io.InputStream;
@@ -41,17 +42,18 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
-    public void close()  {
+    public void close() {
         result.consume();
     }
 
     @Override
-    public boolean wasNull()  {
+    public boolean wasNull() {
         return wasNull;
     }
 
     @Override
-    public String getString(int columnIndex)  {
+    @Nullable
+    public String getString(int columnIndex) {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
             return null;
@@ -135,6 +137,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public byte[] getBytes(int columnIndex) {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -170,7 +173,8 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
-    public InputStream getBinaryStream(int columnIndex)  {
+    @Nullable
+    public InputStream getBinaryStream(int columnIndex) {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
             return null;
@@ -179,6 +183,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public String getString(String columnLabel) throws SQLException {
         try {
             return getString(result.getIndex(columnLabel) + 1);
@@ -260,6 +265,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public byte[] getBytes(String columnLabel) throws SQLException {
         try {
             return getBytes(result.getIndex(columnLabel) + 1);
@@ -314,6 +320,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
         try {
             return getBinaryStream(result.getIndex(columnLabel) + 1);
@@ -323,6 +330,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public SQLWarning getWarnings() {
         return null;
     }
@@ -342,6 +350,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Object getObject(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -351,6 +360,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Object getObject(String columnLabel) throws SQLException {
         return getObject(result.getIndex(columnLabel) + 1);
     }
@@ -366,6 +376,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -375,11 +386,13 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Reader getCharacterStream(String columnLabel) throws SQLException {
         return getCharacterStream(result.getIndex(columnLabel) + 1);
     }
 
     @Override
+    @Nullable
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -389,6 +402,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
         return getBigDecimal(result.getIndex(columnLabel) + 1);
     }
@@ -454,22 +468,22 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
-    public void setFetchDirection(int direction) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
-    }
-
-    @Override
     public int getFetchDirection() {
         return FETCH_FORWARD;
     }
 
     @Override
-    public void setFetchSize(int rows) throws SQLException {
+    public void setFetchDirection(int direction) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     public int getFetchSize() throws SQLException {
+        throw new SQLFeatureNotSupportedException();
+    }
+
+    @Override
+    public void setFetchSize(int rows) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 
@@ -734,6 +748,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Ref getRef(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -744,6 +759,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Blob getBlob(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -754,6 +770,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Clob getClob(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -764,6 +781,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public Array getArray(int columnIndex) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -774,6 +792,7 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
         if (result.isNull(columnIndex - 1)) {
             wasNull = true;
@@ -816,31 +835,37 @@ public class TarantoolResultSet implements ResultSet {
     }
 
     @Override
+    @Nullable
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
         return getObject(result.getIndex(columnLabel) + 1, type);
     }
 
     @Override
+    @Nullable
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
         return getObject(result.getIndex(columnLabel) + 1, map);
     }
 
     @Override
+    @Nullable
     public Ref getRef(String columnLabel) throws SQLException {
         return getRef(result.getIndex(columnLabel) + 1);
     }
 
     @Override
+    @Nullable
     public Blob getBlob(String columnLabel) throws SQLException {
         return getBlob(result.getIndex(columnLabel) + 1);
     }
 
     @Override
+    @Nullable
     public Clob getClob(String columnLabel) throws SQLException {
         return getClob(result.getIndex(columnLabel) + 1);
     }
 
     @Override
+    @Nullable
     public Array getArray(String columnLabel) throws SQLException {
         return getArray(result.getIndex(columnLabel) + 1);
     }

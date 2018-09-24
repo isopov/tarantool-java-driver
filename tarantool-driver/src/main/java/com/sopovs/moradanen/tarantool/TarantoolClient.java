@@ -107,7 +107,7 @@ public interface TarantoolClient extends Closeable {
 
     void change(IntOp op, int field, long arg);
 
-    void change(Op op, int field, String arg);
+    void change(Op op, int field, @Nullable String arg);
 
     void change(Op op, int field, byte[] arg);
 
@@ -125,7 +125,7 @@ public interface TarantoolClient extends Closeable {
 
     void setLong(long val);
 
-    void setString(String val);
+    void setString(@Nullable String val);
 
     void setBytes(byte[] bytes);
 

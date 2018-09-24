@@ -2,6 +2,7 @@ package com.sopovs.moradanen.tarantool.jdbc;
 
 import com.sopovs.moradanen.tarantool.SqlResult;
 import com.sopovs.moradanen.tarantool.TarantoolClient;
+import com.sopovs.moradanen.tarantool.core.Nullable;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
 
 import java.io.*;
@@ -36,7 +37,7 @@ public class TarantoolPreparedStatement extends TarantoolStatement implements Pr
         }
     }
 
-    private static Parameter requireParameter(Parameter par, int index) throws SQLException {
+    private static Parameter requireParameter(@Nullable Parameter par, int index) throws SQLException {
         if (par == null) {
             throw new SQLException("Parameter " + (index + 1) + " is not set");
         }
