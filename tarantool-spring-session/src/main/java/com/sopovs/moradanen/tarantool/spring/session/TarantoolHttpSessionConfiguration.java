@@ -131,6 +131,9 @@ public class TarantoolHttpSessionConfiguration extends SpringHttpSessionConfigur
         Map<String, Object> attributeMap = importMetadata
                 .getAnnotationAttributes(EnableTarantoolHttpSession.class.getName());
         AnnotationAttributes attributes = AnnotationAttributes.fromMap(attributeMap);
+        if (attributes == null) {
+            throw new IllegalArgumentException("@EnableTarantoolHttpSession is not present on importing class " + importMetadata.getClassName());
+        }
         this.maxInactiveIntervalInSeconds = attributes.getNumber("maxInactiveIntervalInSeconds");
         String spaceNameValue = attributes.getString("spaceName");
         if (StringUtils.hasText(spaceNameValue)) {

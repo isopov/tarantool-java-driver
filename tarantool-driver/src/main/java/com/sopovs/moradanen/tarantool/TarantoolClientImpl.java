@@ -113,7 +113,7 @@ public class TarantoolClientImpl implements TarantoolClient {
             throw new TarantoolException(e);
         }
 
-        byte[] step1 = sha1.digest(password.getBytes());
+        byte[] step1 = sha1.digest(password.getBytes(StandardCharsets.UTF_8));
 
         sha1.reset();
         byte[] step2 = sha1.digest(step1);
