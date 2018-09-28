@@ -27,7 +27,7 @@ public class TarantoolDriver implements Driver {
         }
         Properties props = parseProperties(url, info);
         return new TarantoolConnection(
-                new TarantoolClientImpl(props.getProperty("host"), Integer.valueOf(props.getProperty("port", "3301")),
+                new TarantoolClientImpl(props.getProperty("host"), Integer.parseInt(props.getProperty("port", "3301")),
                         props.getProperty("user"), props.getProperty("password")));
     }
 

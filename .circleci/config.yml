@@ -27,4 +27,4 @@ jobs:
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
       # run tests!
-      - run: ./mvnw clean package
+      - run: ./mvnw clean verify
