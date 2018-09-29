@@ -4,7 +4,7 @@
 
     <groupId>com.github.isopov.tarantool-java-driver</groupId>
     <artifactId>tarantool-driver-parent</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Java connector for Tarantool DB</name>
@@ -19,7 +19,7 @@
         <connection>scm:git:git://github.com/isopov/tarantool-java-driver.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/isopov/tarantool-java-driver.git</developerConnection>
         <url>https://github.com/isopov/tarantool-java-driver</url>
-        <tag>0.0.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <developers>
