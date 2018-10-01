@@ -32,7 +32,7 @@ public class TarantoolSessionAutoConfiguration {
             }
             setSpaceName(tarantoolSessionProperties.getSpaceName());
             setCleanupCron(tarantoolSessionProperties.getCleanupCron());
-            //TODO create spaces based on tarantoolSessionProperties.isCreateSpaces();
+            setCreateSpaces(tarantoolSessionProperties.isCreateSpaces());
         }
 
     }
