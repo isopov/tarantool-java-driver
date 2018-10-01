@@ -60,7 +60,6 @@
                 <module>tarantool-spring-session</module>
                 <module>tarantool-spring-boot-starter</module>
                 <module>tarantool-benchmarks</module>
-                <module>tarantool-spring-boot-session-sample</module>
             </modules>
         </profile>
         <profile>
