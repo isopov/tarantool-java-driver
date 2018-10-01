@@ -1,9 +1,6 @@
 package com.sopovs.moradanen.tarantool;
 
-import com.sopovs.moradanen.tarantool.core.IntOp;
-import com.sopovs.moradanen.tarantool.core.Iter;
-import com.sopovs.moradanen.tarantool.core.Op;
-import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -182,6 +179,15 @@ class TarantoolPooledClientSourceTest {
         assertEquals(POOL_CLOSED, exception.getMessage());
     }
 
+    @Test
+    void testThrowingClientCreation() {
+        try (TarantoolClientSource pool = new TarantoolPooledClientSource(DUMMY_CONFIG, DummyCreationThrowingClient::new, 1)) {
+            assertThrows(TarantoolException.class, pool::getClient);
+            //should not hang on failing to get two connections from pool of size 1
+            assertThrows(TarantoolException.class, pool::getClient);
+        }
+    }
+
     static class DummyTarantoolClient implements TarantoolClient {
 
         DummyTarantoolClient(@SuppressWarnings("unused") TarantoolConfig config) {
@@ -269,7 +275,7 @@ class TarantoolPooledClientSourceTest {
         }
 
         @Override
-        public void change(Op op, int field, String arg) {
+        public void change(Op op, int field, @Nullable String arg) {
             throw new TarantoolException("Not implemented!");
 
         }
@@ -325,7 +331,7 @@ class TarantoolPooledClientSourceTest {
         }
 
         @Override
-        public void setString(String val) {
+        public void setString(@Nullable String val) {
             throw new TarantoolException("Not implemented!");
         }
 
@@ -337,6 +343,14 @@ class TarantoolPooledClientSourceTest {
         @Override
         public String getVersion() {
             throw new TarantoolException("Not implemented!");
+        }
+    }
+
+    static class DummyCreationThrowingClient extends DummyTarantoolClient {
+
+        DummyCreationThrowingClient(TarantoolConfig config) {
+            super(config);
+            throw new TarantoolException("Cannot create!");
         }
     }
 }

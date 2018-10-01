@@ -45,7 +45,12 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
                 }
                 if (currentSize < size) {
                     currentSize++;
-                    return new TarantoolClientProxy(clientFactory.apply(config));
+                    try {
+                        return new TarantoolClientProxy(clientFactory.apply(config));
+                    } catch (TarantoolException creationException) {
+                        currentSize--;
+                        throw creationException;
+                    }
                 }
                 try {
                     pool.wait();
