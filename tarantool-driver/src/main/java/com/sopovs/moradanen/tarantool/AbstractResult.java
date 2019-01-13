@@ -12,6 +12,9 @@ import org.msgpack.value.ValueType;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 abstract class AbstractResult implements Result {
 
@@ -111,6 +114,23 @@ abstract class AbstractResult implements Result {
     }
 
     @Override
+    public OptionalDouble getOptionalDouble(int index) {
+        checkNextCalled();
+        assert current != null; //hack to disable warning
+        Value value = current.get(index);
+        if (value.isNilValue()) {
+            return OptionalDouble.empty();
+        }
+        try {
+            return OptionalDouble.of(value.asFloatValue().toDouble());
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected float, but got " + decode(value.getValueType()), e);
+        } catch (MessagePackException e) {
+            throw new TarantoolException(e);
+        }
+    }
+
+    @Override
     public float getFloat(int index) {
         checkNextCalled();
         assert current != null; //hack to disable warning
@@ -137,6 +157,23 @@ abstract class AbstractResult implements Result {
     }
 
     @Override
+    public OptionalLong getOptionalLong(int index) {
+        checkNextCalled();
+        assert current != null; //hack to disable warning
+        Value value = current.get(index);
+        if (value.isNilValue()) {
+            return OptionalLong.empty();
+        }
+        try {
+            return OptionalLong.of(value.asIntegerValue().asLong());
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected integer, but got " + decode(value.getValueType()), e);
+        } catch (MessagePackException e) {
+            throw new TarantoolException(e);
+        }
+    }
+
+    @Override
     public int getInt(int index) {
         checkNextCalled();
         assert current != null; //hack to disable warning
@@ -144,6 +181,23 @@ abstract class AbstractResult implements Result {
             return current.get(index).asIntegerValue().asInt();
         } catch (MessageTypeCastException e) {
             throw new TarantoolException("Expected integer, but got " + decode(current.get(index).getValueType()), e);
+        } catch (MessagePackException e) {
+            throw new TarantoolException(e);
+        }
+    }
+
+    @Override
+    public OptionalInt getOptionalInt(int index) {
+        checkNextCalled();
+        assert current != null; //hack to disable warning
+        Value value = current.get(index);
+        if (value.isNilValue()) {
+            return OptionalInt.empty();
+        }
+        try {
+            return OptionalInt.of(value.asIntegerValue().asInt());
+        } catch (MessageTypeCastException e) {
+            throw new TarantoolException("Expected integer, but got " + decode(value.getValueType()), e);
         } catch (MessagePackException e) {
             throw new TarantoolException(e);
         }
