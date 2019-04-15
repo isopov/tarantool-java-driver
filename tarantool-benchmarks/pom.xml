@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.tarantool</groupId>
             <artifactId>connector</artifactId>
-            <version>1.7.5</version>
+            <version>1.9.1</version>
         </dependency>
     </dependencies>
 
