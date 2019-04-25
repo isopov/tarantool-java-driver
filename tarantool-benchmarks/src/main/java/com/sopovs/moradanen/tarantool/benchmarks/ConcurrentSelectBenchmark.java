@@ -68,20 +68,23 @@ public class ConcurrentSelectBenchmark {
         switch (type) {
             case REFERENCE_CLIENT:
                 SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
+                TarantoolClientConfig tarantoolClientConfig = new TarantoolClientConfig();
+                tarantoolClientConfig.username = "admin";
+                tarantoolClientConfig.password = "javapass";
                 referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
-                        new TarantoolClientConfig());
+                        tarantoolClientConfig);
                 break;
             case POOLED_CLIENT_SOURCE:
-                clientSource = new TarantoolPooledClientSource("localhost", 3301, 16);
+                clientSource = new TarantoolPooledClientSource("localhost", 3301, "admin", "javapass", 16);
                 break;
             case THREAD_LOCAL:
-                threadLocalClient = ThreadLocal.withInitial(() -> new TarantoolClientImpl("localhost"));
+                threadLocalClient = ThreadLocal.withInitial(() -> new TarantoolClientImpl("localhost", "admin", "javapass"));
                 break;
             default:
                 throw new IllegalStateException();
         }
 
-        try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
             client.evalFully("box.schema.space.create('javabenchmark')").consume();
             client.evalFully(
                     "box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
@@ -195,7 +198,7 @@ public class ConcurrentSelectBenchmark {
 
     @TearDown
     public void tearDown() {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
             client.evalFully("box.space.javabenchmark:drop()").consume();
         }
         switch (type) {

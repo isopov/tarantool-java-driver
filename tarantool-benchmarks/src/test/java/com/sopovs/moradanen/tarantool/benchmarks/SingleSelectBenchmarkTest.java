@@ -15,12 +15,12 @@ class SingleSelectBenchmarkTest {
 
     private static String getEnvTarantoolVersion() {
         String version = System.getenv("TARANTOOL_VERSION");
-        return version == null ? "2.0" : version;
+        return version == null ? "2.1" : version;
     }
 
     @BeforeEach
     void setup() throws Exception {
-        assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
+        assumeTrue(getEnvTarantoolVersion().startsWith("2.1"));
         benchmark.size = 33;
         benchmark.setup();
     }
@@ -47,7 +47,7 @@ class SingleSelectBenchmarkTest {
 
     @AfterEach
     void tearDown() throws SQLException {
-        if (getEnvTarantoolVersion().startsWith("2.0")) {
+        if (getEnvTarantoolVersion().startsWith("2.1")) {
             benchmark.tearDown();
         }
     }

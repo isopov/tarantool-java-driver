@@ -31,9 +31,14 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         this(config, TarantoolClientImpl::new, size);
     }
 
-    public TarantoolPooledClientSource(String host, int port, int size) {
-        this(new TarantoolConfig(host, port, null, null), TarantoolClientImpl::new, size);
+    public TarantoolPooledClientSource(@Nullable String host, int port, int size) {
+        this(host, port, null, null, size);
     }
+
+    public TarantoolPooledClientSource(@Nullable String host, int port, @Nullable String login, @Nullable String password, int size) {
+        this(new TarantoolConfig(host, port, login, password), TarantoolClientImpl::new, size);
+    }
+
 
     @Override
     public TarantoolClient getClient() {

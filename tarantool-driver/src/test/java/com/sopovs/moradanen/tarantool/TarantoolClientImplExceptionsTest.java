@@ -9,7 +9,6 @@ import java.util.function.Consumer;
 
 import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.*;
 import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.createTestSpace;
-import static com.sopovs.moradanen.tarantool.TarantoolClientImplTest.testAuth;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -37,7 +36,7 @@ class TarantoolClientImplExceptionsTest {
     }
 
     private static void testSetAndSelect(Consumer<TarantoolClient> setter, Consumer<Result> getter, @Nullable String getterException) {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
              AutoCloseable ignored = () -> client.evalFully("box.space.javatest:drop()")) {
 
             createTestSpace(client);
@@ -76,19 +75,25 @@ class TarantoolClientImplExceptionsTest {
 
     @Test
     void testWrongPassword() {
-        TarantoolException exception = assertThrows(TarantoolException.class,
-                () -> testAuth("foobar", "barfoo")
-        );
-        assertEquals("Incorrect password supplied for user 'foobar'", exception.getMessage());
+        assertThrows(TarantoolException.class,
+                () -> testWrongAuth("admin"),
+                "Incorrect password supplied for user 'admin'");
     }
 
     @Test
     void testWrongUser() {
         assertThrows(TarantoolException.class,
-                () -> testAuth("barfoo", "barfoo"),
+                () -> testWrongAuth("foobar"),
                 "User 'barfoo' is not found"
         );
     }
+
+    static void testWrongAuth(String login) {
+        try (TarantoolClientImpl ignored = new TarantoolClientImpl("localhost", 3301, login, "foobar")) {
+            //no code
+        }
+    }
+
 
     @Test
     void testNoSpace() {
