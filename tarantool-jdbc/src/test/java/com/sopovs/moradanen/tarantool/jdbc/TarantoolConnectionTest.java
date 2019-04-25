@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
@@ -19,12 +20,12 @@ class TarantoolConnectionTest {
 
     @BeforeAll
     static void setup() {
-        assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
+        assumeTrue(getEnvTarantoolVersion().startsWith("2.1"));
     }
 
 
     private void testOneSelect(@Nullable String value, Consumer<TarantoolResultSet> resConsumer) throws SQLException {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolStatement st = con.createStatement()) {
             st.executeUpdate("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
@@ -48,6 +49,24 @@ class TarantoolConnectionTest {
             st.executeUpdate("DROP TABLE TABLE1");
         }
     }
+
+
+//    @Test
+//    void testFoo() throws SQLException {
+//        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
+//             TarantoolConnection con = new TarantoolConnection(client);
+//             TarantoolStatement st = con.createStatement()) {
+//            client.evalFully("box.space.javatest:drop()");
+//            client.evalFully("box.schema.space.create('JAVATEST')");
+//            client.evalFully("box.space.JAVATEST:format('primary', {type = 'hash', parts = {1, 'num'}})");
+//            client.evalFully("box.space.JAVATEST:create_index('primary', {type = 'hash', parts = {1, 'num'}})");
+//            try (ResultSet res = st.executeQuery("select * from JAVATEST")) {
+//
+//            }
+//
+//        }
+//    }
+
 
     @Test
     void testSimple() throws SQLException {
@@ -196,7 +215,7 @@ class TarantoolConnectionTest {
 
     @Test
     void testBatch() throws SQLException {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolStatement st = con.createStatement()) {
             st.executeUpdate("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
@@ -221,7 +240,7 @@ class TarantoolConnectionTest {
 
     @Test
     void testMissingFirstParameterExecute() throws SQLException {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
             pst.setString(2, "foobar");
@@ -235,16 +254,13 @@ class TarantoolConnectionTest {
 
     @Test
     void testMissingFirstParameterUpdate() throws SQLException {
-        try (TarantoolClient client = new TarantoolClientImpl("localhost");
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
              TarantoolConnection con = new TarantoolConnection(client);
              TarantoolPreparedStatement pst = con.prepareStatement("foobar")) {
             pst.setString(2, "foobar");
 
 
-            assertThrows(SQLException.class,
-                    pst::executeUpdate,
-                    "Parameter 1 is not set"
-            );
+            assertThrows(SQLException.class, pst::executeUpdate, "Parameter 1 is not set");
         }
     }
 }

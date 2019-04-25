@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class DriverManagerTest {
     @BeforeAll
     static void setup() {
-        assumeTrue(getEnvTarantoolVersion().startsWith("2.0"));
+        assumeTrue(getEnvTarantoolVersion().startsWith("2.1"));
     }
 
     @Test

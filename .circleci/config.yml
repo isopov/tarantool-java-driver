@@ -3,7 +3,10 @@ jobs:
   build:
     docker:
       - image: circleci/openjdk:11-jdk
-      - image: progaudi/tarantool:2.0
+      - image: tarantool/tarantool:2.1
+        environment:
+          TARANTOOL_USER_NAME: admin
+          TARANTOOL_USER_PASSWORD: javapass
     working_directory: ~/repo
     environment:
       MAVEN_OPTS: -Xmx1200m

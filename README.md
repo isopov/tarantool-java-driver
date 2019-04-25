@@ -19,7 +19,7 @@ Cons (why oficial connector is better)
 * Java 6 support
 
 # Building
-* Install tarantool (2+ version to test support of 2+ features) or run it from docker: `docker run -p 3301:3301 --rm -t -i progaudi/tarantool:2.0`
+* Run tarantool from docker: `docker run -p 3301:3301 --rm -t -i -e TARANTOOL_USER_NAME=admin -e TARANTOOL_USER_PASSWORD=javapass tarantool/tarantool:2.1`
 * `./mvnw clean verify`
 
 # Getting started
