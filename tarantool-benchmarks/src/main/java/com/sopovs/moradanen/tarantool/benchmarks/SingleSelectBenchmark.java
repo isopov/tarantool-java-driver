@@ -64,13 +64,15 @@ public class SingleSelectBenchmark {
     @Setup
     public void setup() throws Exception {
         SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
-        referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
-                new TarantoolClientConfig());
-        connection = new TarantoolConnection(null, null, new Socket("localhost", 3301));
-        clientSource = new TarantoolPooledClientSource("localhost", 3301, 1);
+        TarantoolClientConfig tarantoolClientConfig = new TarantoolClientConfig();
+        tarantoolClientConfig.username = "admin";
+        tarantoolClientConfig.password = "javapass";
+        referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel, tarantoolClientConfig);
+        connection = new TarantoolConnection("admin", "javapass", new Socket("localhost", 3301));
+        clientSource = new TarantoolPooledClientSource("localhost", 3301, "admin", "javapass", 1);
 
         template = new TarantoolTemplate(clientSource);
-        jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(new TarantoolClientImpl("localhost", 3301));
+        jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(new TarantoolClientImpl("localhost", 3301, "admin", "javapass"));
         setupData();
 
     }
