@@ -2,7 +2,7 @@
 [![CircleCI Build Status](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master.svg?style=svg)](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master)
 
 This connector is not used anywhere in production alternative to official Tarantool java connector that can be found at https://github.com/tarantool/tarantool-java
-It has extensive test suite and tests are run regularly (on every push) on 5 Tarantool versions - 1.6, 1.7, 1.9, 1.10 and 2.0 on Travis and on 2.0 docker version on CircleCi
+It has extensive test suite and tests are run regularly (on every push) on 4 Tarantool versions - 1.6, 1.7, 1.9 and 2.1 on Travis and on 2.1 version on CircleCi
 
 Pros (why this connector is better):
 * (This list was larger - official connector addressed some issues)
