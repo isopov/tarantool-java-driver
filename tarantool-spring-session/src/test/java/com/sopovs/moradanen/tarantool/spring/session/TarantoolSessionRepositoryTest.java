@@ -25,7 +25,7 @@ class TarantoolSessionRepositoryTest {
     @BeforeEach
     void setUp() {
         assumeFalse(getEnvTarantoolVersion().startsWith("1.6"));
-        clientSource = new TarantoolPooledClientSource("localhost", 3301, 1);
+        clientSource = new TarantoolPooledClientSource("localhost", 3301, "admin", "javapass", 1);
         sessionRepository = new TarantoolSessionRepository(clientSource);
         sessionRepository.createSpaces();
         session = sessionRepository.createSession();
