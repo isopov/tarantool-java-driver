@@ -57,6 +57,10 @@ public class TarantoolClientImpl implements TarantoolClient {
         this(createSocket(host, port));
     }
 
+    public TarantoolClientImpl(@Nullable String host, @Nullable String login, @Nullable String password) {
+        this(host, 3301, login, password);
+    }
+
     public TarantoolClientImpl(@Nullable String host, int port, @Nullable String login, @Nullable String password) {
         this(createSocket(host, port), login, password);
     }

@@ -41,6 +41,7 @@ public final class Util {
     public static final int KEY_ERROR = 0x31;
     // SQL
     public static final int KEY_FIELD_NAME = 0;
+    public static final int KEY_FIELD_TYPE = 1;
     public static final int KEY_METADATA = 0x32;
     public static final int KEY_SQL_TEXT = 0x40;
     public static final int KEY_SQL_BIND = 0x41;
