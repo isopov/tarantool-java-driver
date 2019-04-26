@@ -85,6 +85,21 @@ class TarantoolClientImplExceptionsTest {
     }
 
     @Test
+    void testSqlNotClosingResult() {
+        TarantoolClientImplTest.sqlTest(client -> {
+            client.sql("INSERT INTO TABLE1 VALUES(?,?)");
+            client.setInt(1);
+            client.setString("A");
+            assertEquals(1L, client.executeUpdate());
+            try (TarantoolClient secondClient = new TarantoolClientImpl("localhost", "admin", "javapass")) {
+                secondClient.sql("SELECT * FROM TABLE1");
+                assertEquals(1, secondClient.execute().getSize());
+                assertThrows(TarantoolException.class, secondClient::ping, NOT_CLOSED_RESULT);
+            }
+        });
+    }
+
+    @Test
     void testWrongPassword() {
         assertThrows(TarantoolException.class,
                 () -> testWrongAuth("admin"),
