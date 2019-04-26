@@ -142,7 +142,7 @@ public class TarantoolSessionRepository
 
                 Set<String> attributes = session.getAttributeNames();
                 if (attributes.isEmpty()) {
-                    client.execute().consume();
+                    client.execute().close();
                 } else {
                     client.addBatch();
                     for (String attribute : attributes) {
@@ -165,7 +165,7 @@ public class TarantoolSessionRepository
                     client.change(IntOp.ASSIGN, 5, session.getLastAccessedTime().toEpochMilli());
                     client.change(IntOp.ASSIGN, 6, session.getExpiryTime().toEpochMilli());
                     client.change(Op.ASSIGN, 7, session.getPrincipalName());
-                    client.execute().consume();
+                    client.execute().close();
                 }
 
                 Map<String, Object> delta = session.getDelta();
@@ -223,7 +223,7 @@ public class TarantoolSessionRepository
         client.setLong(session.primaryKey.getLeastSignificantBits());
         Set<String> attributeNames = session.getAttributeNames();
         if (attributeNames.isEmpty()) {
-            client.execute().consume();
+            client.execute().close();
         } else {
             client.addBatch();
 
@@ -496,31 +496,31 @@ public class TarantoolSessionRepository
     }
 
     private static void createSpaces(String spaceName, String attributesSpaceName, TarantoolClient client) {
-        client.evalFully("box.schema.space.create('" + spaceName + "', {if_not_exists=true})").consume();
+        client.evalFully("box.schema.space.create('" + spaceName + "', {if_not_exists=true})").close();
         // TODO format for field count and types
         // SPACE_PRIMARY_INDEX
         client.evalFully(
                 "box.space." + spaceName
                         + ":create_index('primary', {type = 'hash', if_not_exists=true, parts = {{1, 'int'}, {2, 'int'}}})")
-                .consume();
+                .close();
         // SPACE_ID_INDEX
         client.evalFully(
                 "box.space." + spaceName
                         + ":create_index('id', {type = 'hash', if_not_exists=true, parts = {{3, 'int'}, {4, 'int'}}})")
-                .consume();
+                .close();
         // SPACE_NAME_INDEX
         client.evalFully("box.space." + spaceName
                 + ":create_index('name', {type = 'tree', if_not_exists=true, parts = {{8, 'string', is_nullable=true}}, unique=false})")
-                .consume();
+                .close();
         // SPACE_EXPIRY_INDEX
         client.evalFully("box.space." + spaceName
                 + ":create_index('expiry', {type = 'tree', if_not_exists=true, parts = {{7, 'uint'}}, unique=false})")
-                .consume();
+                .close();
 
-        client.evalFully("box.schema.space.create('" + attributesSpaceName + "', {if_not_exists=true})").consume();
+        client.evalFully("box.schema.space.create('" + attributesSpaceName + "', {if_not_exists=true})").close();
         client.evalFully("box.space." + attributesSpaceName
                 + ":create_index('primary', {type = 'tree', if_not_exists=true, parts = {{1, 'int'}, {2, 'int'}, {3, 'string'}}})")
-                .consume();
+                .close();
     }
 
 }

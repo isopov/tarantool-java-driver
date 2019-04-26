@@ -23,6 +23,7 @@ public class TarantoolClientImpl implements TarantoolClient {
     static final String EXECUTE_ABSENT_EXCEPTION = "Trying to execute absent query";
     static final String PRE_ACTION_EXCEPTION = "Execute or add to batch action before starting next one";
     static final String PRE_SET_EXCEPTION = "Need to call one of update/insert/upsert/delete before setting tuple value";
+    static final String NOT_CLOSED_RESULT = "Sending next without reading previous";
     private static final byte INSERT = 1;
     private static final byte UPSERT_TUPLE = 2;
     private static final byte UPSERT_OPS = 3;
@@ -144,7 +145,7 @@ public class TarantoolClientImpl implements TarantoolClient {
                     throw new TarantoolException("Unknown body Key " + bodyKey);
                 }
             } else if (bodySize == 2) {
-                return new SqlResult(unpacker);
+                return last = new SqlResult(unpacker);
             } else {
                 throw new TarantoolException("Body size is " + bodySize);
             }
@@ -250,7 +251,7 @@ public class TarantoolClientImpl implements TarantoolClient {
     public void executeBatch() {
         for (int i = 0; i < batchSize; i++) {
             Result result = getSingleResult();
-            result.consume();
+            result.close();
         }
         batchSize = 0;
     }
@@ -331,7 +332,7 @@ public class TarantoolClientImpl implements TarantoolClient {
 
     private void writeCode(int code) throws IOException {
         if (last != null && last.hasNext()) {
-            throw new TarantoolException("Sending next without reading previous");
+            throw new TarantoolException(NOT_CLOSED_RESULT);
         }
         packer.packMapHeader(2);
         packer.packInt(Util.KEY_CODE);

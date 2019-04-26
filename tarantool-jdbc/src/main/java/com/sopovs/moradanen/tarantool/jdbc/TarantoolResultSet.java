@@ -43,7 +43,7 @@ public class TarantoolResultSet implements ResultSet {
 
     @Override
     public void close() {
-        result.consume();
+        result.close();
     }
 
     @Override

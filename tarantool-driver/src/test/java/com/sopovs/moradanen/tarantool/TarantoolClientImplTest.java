@@ -2,11 +2,13 @@ package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.Op;
+import com.sopovs.moradanen.tarantool.core.TarantoolException;
 import com.sopovs.moradanen.tarantool.core.Util;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
+import static com.sopovs.moradanen.tarantool.TarantoolClientImpl.NOT_CLOSED_RESULT;
 import static com.sopovs.moradanen.tarantool.test.TestUtil.getEnvTarantoolVersion;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -38,7 +40,7 @@ class TarantoolClientImplTest {
         client.selectAll(Util.SPACE_VSPACE);
         Result result = client.execute();
         assertTrue(result.getSize() > 0);
-        result.consume();
+        result.close();
         assertFalse(result.hasNext());
     }
 
@@ -48,7 +50,7 @@ class TarantoolClientImplTest {
             client.selectAll("_vspace", 3);
             Result result = client.execute();
             assertEquals(3, result.getSize());
-            result.consume();
+            result.close();
             assertFalse(result.hasNext());
         }
     }
@@ -60,7 +62,7 @@ class TarantoolClientImplTest {
                 client.selectAll(Util.SPACE_VSPACE, i);
                 Result result = client.execute();
                 assertEquals(i, result.getSize());
-                result.consume();
+                result.close();
                 assertFalse(result.hasNext());
 
             }
@@ -68,9 +70,21 @@ class TarantoolClientImplTest {
     }
 
     @Test
+    void testSelectClosingNotReadResult() {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
+            client.select(Util.SPACE_VSPACE, Util.INDEX_SPACE_NAME);
+            client.setString("_space");
+            try (Result res = client.execute()) {
+                assertEquals(1, res.getSize());
+            }
+            client.ping();
+        }
+    }
+
+    @Test
     void testSpace() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
-//            assertEquals(Util.SPACE_SCHEMA, client.space("_schema"));
+            assertEquals(Util.SPACE_SCHEMA, client.space("_schema"));
             assertEquals(Util.SPACE_SPACE, client.space("_space"));
             assertEquals(Util.SPACE_INDEX, client.space("_index"));
             assertEquals(Util.SPACE_FUNC, client.space("_func"));
@@ -124,7 +138,7 @@ class TarantoolClientImplTest {
             client.setInt(1);
             Result delete = client.execute();
             assertEquals(1, delete.getSize());
-            delete.consume();
+            delete.close();
 
             client.select("javatest", 0);
             client.setInt(1);
@@ -145,19 +159,19 @@ class TarantoolClientImplTest {
             client.insert("javatest");
             client.setInt(1);
             client.setInt(0);
-            client.execute().consume();
+            client.execute().close();
 
             client.insert("javatest");
             client.setInt(1);
             client.setInt(1);
-            client.execute().consume();
+            client.execute().close();
 
             client.delete("javatest");
             client.setInt(1);
             client.setInt(1);
             Result delete = client.execute();
             assertEquals(1, delete.getSize());
-            delete.consume();
+            delete.close();
 
             client.selectAll("javatest");
             Result select = client.execute();
@@ -182,12 +196,12 @@ class TarantoolClientImplTest {
     private static void insertCheck(TarantoolClient client) {
         Result insert = client.execute();
         assertEquals(1, insert.getSize());
-        insert.consume();
+        insert.close();
 
         client.selectAll("javatest");
         Result selectAll = client.execute();
         assertEquals(1, selectAll.getSize());
-        selectAll.consume();
+        selectAll.close();
 
         client.select("javatest", 0);
         client.setInt(1);
@@ -224,7 +238,7 @@ class TarantoolClientImplTest {
                 client.setInt(i);
                 Result first = client.execute();
                 assertEquals(1, first.getSize());
-                first.consume();
+                first.close();
             }
         }
     }
@@ -240,7 +254,7 @@ class TarantoolClientImplTest {
             Result update = client.execute();
             assertEquals(1, update.getSize());
 
-            update.consume();
+            update.close();
 
             testValue(client, 1);
         }
@@ -258,7 +272,7 @@ class TarantoolClientImplTest {
             client.change(IntOp.PLUS, 1, val);
             Result update = client.execute();
             assertEquals(1, update.getSize());
-            update.consume();
+            update.close();
             testValue(client, val);
         }
     }
@@ -274,7 +288,7 @@ class TarantoolClientImplTest {
             Result update = client.execute();
             assertEquals(1, update.getSize());
 
-            update.consume();
+            update.close();
 
             testValue(client, 42);
         }
@@ -292,7 +306,7 @@ class TarantoolClientImplTest {
             client.setBytes(new byte[]{0, 0, 0, 0});
             Result insert = client.execute();
             assertEquals(1, insert.getSize());
-            insert.consume();
+            insert.close();
 
             client.update(client.space("javatest"), 0);
             client.setInt(1);
@@ -301,7 +315,7 @@ class TarantoolClientImplTest {
             Result update = client.execute();
             assertEquals(1, update.getSize());
 
-            update.consume();
+            update.close();
 
             client.select("javatest", 0);
             client.setInt(1);
@@ -324,7 +338,7 @@ class TarantoolClientImplTest {
             Result update = client.execute();
             assertEquals(1, update.getSize());
 
-            update.consume();
+            update.close();
 
             testValue(client, 0, "Barfoo");
         }
@@ -341,7 +355,7 @@ class TarantoolClientImplTest {
             client.change(Op.ASSIGN, 2, "Barfoo");
             Result update = client.execute();
             assertEquals(1, update.getSize());
-            update.consume();
+            update.close();
             testValue(client, 1, "Barfoo");
         }
     }
@@ -376,7 +390,7 @@ class TarantoolClientImplTest {
         testUpsertBatchStep(client);
         Result upsert = client.execute();
         assertEquals(0, upsert.getSize());
-        upsert.consume();
+        upsert.close();
 
         testValue(client, value);
     }

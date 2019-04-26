@@ -95,6 +95,8 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
     private final class TarantoolClientProxy implements TarantoolClient {
         private final TarantoolClient client;
         private boolean closed = false;
+        @Nullable
+        private Result lastResult;
 
         @Override
         public boolean isClosed() {
@@ -111,6 +113,10 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
                 if (poolClosed) {
                     client.close();
                 } else {
+                    if (lastResult != null && lastResult.hasNext()) {
+                        lastResult.close();
+                        lastResult = null;
+                    }
                     pool.add(client);
                     pool.notify();
                 }
@@ -140,7 +146,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public Result execute() {
             checkClosed();
             try {
-                return client.execute();
+                return lastResult = client.execute();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
