@@ -3,6 +3,7 @@ package com.sopovs.moradanen.tarantool;
 import com.sopovs.moradanen.tarantool.core.*;
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -188,6 +189,18 @@ class TarantoolPooledClientSourceTest {
         }
     }
 
+    @Test
+    void testClosingResultsOnClosingClient() {
+        try (TarantoolClientSource pool = new TarantoolPooledClientSource(DUMMY_CONFIG, DummyCheckingResultCloseClient::new, 1)) {
+            try (TarantoolClient client = pool.getClient()) {
+                client.execute();
+            }
+            try (TarantoolClient client = pool.getClient()) {
+                client.execute();
+            }
+        }
+    }
+
     static class DummyTarantoolClient implements TarantoolClient {
 
         DummyTarantoolClient(@SuppressWarnings("unused") TarantoolConfig config) {
@@ -351,6 +364,106 @@ class TarantoolPooledClientSourceTest {
         DummyCreationThrowingClient(TarantoolConfig config) {
             super(config);
             throw new TarantoolException("Cannot create!");
+        }
+    }
+
+    static class DummyCheckingResultCloseClient extends DummyTarantoolClient {
+
+        private boolean lastResultClosed = true;
+
+        DummyCheckingResultCloseClient(TarantoolConfig config) {
+            super(config);
+        }
+
+        @Override
+        public Result execute() {
+            assertTrue(lastResultClosed, "execute called without closing prev result");
+            lastResultClosed = false;
+            return new DummyResult() {
+                @Override
+                public void close() {
+                    lastResultClosed = true;
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return true;
+                }
+            };
+        }
+    }
+
+
+    static class DummyResult implements Result {
+
+        @Override
+        public int getSize() {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public boolean hasNext() {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public boolean isNull(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public boolean getBoolean(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public double getDouble(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public float getFloat(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public long getLong(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public int getInt(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public String getString(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public byte[] getBytes(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public ByteBuffer getByteBuffer(int index) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public int currentSize() {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public boolean next() {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public void close() {
+            throw new TarantoolException("Not implemented!");
         }
     }
 }

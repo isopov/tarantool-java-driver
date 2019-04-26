@@ -49,7 +49,7 @@ abstract class AbstractResult implements Result {
     }
 
     @Override
-    public void consume() {
+    public void close() {
         while (counter < getSize()) {
             counter++;
             try {

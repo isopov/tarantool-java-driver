@@ -3,6 +3,7 @@ package com.sopovs.moradanen.tarantool;
 import com.sopovs.moradanen.tarantool.core.IntOp;
 import com.sopovs.moradanen.tarantool.core.Nullable;
 import com.sopovs.moradanen.tarantool.core.TarantoolException;
+import com.sopovs.moradanen.tarantool.core.Util;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
@@ -47,7 +48,7 @@ class TarantoolClientImplExceptionsTest {
 
             Result insert = client.execute();
             assertEquals(1, insert.getSize());
-            insert.consume();
+            insert.close();
 
             client.select(client.space("javatest"), 0);
             client.setInt(1);
@@ -70,6 +71,16 @@ class TarantoolClientImplExceptionsTest {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
             client.close();
             assertThrows(TarantoolException.class, client::ping);
+        }
+    }
+
+    @Test
+    void testSelectNotClosingResult() {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
+            client.select(Util.SPACE_VSPACE, Util.INDEX_SPACE_NAME);
+            client.setString("_space");
+            assertEquals(1, client.execute().getSize());
+            assertThrows(TarantoolException.class, client::ping, NOT_CLOSED_RESULT);
         }
     }
 

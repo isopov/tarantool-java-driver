@@ -2,10 +2,10 @@ package com.sopovs.moradanen.tarantool;
 
 import com.sopovs.moradanen.tarantool.core.Nullable;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 
-//TODO Closeable?
-public interface Result {
+public interface Result extends Closeable {
 
     int getSize();
 
@@ -34,5 +34,6 @@ public interface Result {
 
     boolean next();
 
-    void consume();
+    @Override
+    void close();
 }

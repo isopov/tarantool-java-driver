@@ -85,10 +85,10 @@ public class ConcurrentSelectBenchmark {
         }
 
         try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
-            client.evalFully("box.schema.space.create('javabenchmark')").consume();
+            client.evalFully("box.schema.space.create('javabenchmark')").close();
             client.evalFully(
                     "box.space.javabenchmark:create_index('primary', {type = 'hash', parts = {1, 'num'}})")
-                    .consume();
+                    .close();
             space = client.space("javabenchmark");
             for (int i = 0; i < size; i++) {
                 client.insert(space);
@@ -199,7 +199,7 @@ public class ConcurrentSelectBenchmark {
     @TearDown
     public void tearDown() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
-            client.evalFully("box.space.javabenchmark:drop()").consume();
+            client.evalFully("box.space.javabenchmark:drop()").close();
         }
         switch (type) {
             case REFERENCE_CLIENT:

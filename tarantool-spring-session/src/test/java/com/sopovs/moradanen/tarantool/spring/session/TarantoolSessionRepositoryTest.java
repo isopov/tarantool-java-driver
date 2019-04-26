@@ -38,8 +38,8 @@ class TarantoolSessionRepositoryTest {
             return;
         }
         try (TarantoolClient client = clientSource.getClient()) {
-            client.evalFully("box.space." + DEFAULT_SPACE_NAME + ":drop()").consume();
-            client.evalFully("box.space." + DEFAULT_ATTRIBUTES_SPACE_NAME + ":drop()").consume();
+            client.evalFully("box.space." + DEFAULT_SPACE_NAME + ":drop()").close();
+            client.evalFully("box.space." + DEFAULT_ATTRIBUTES_SPACE_NAME + ":drop()").close();
         }
         clientSource.close();
     }
