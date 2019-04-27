@@ -50,24 +50,6 @@ class TarantoolConnectionTest {
         }
     }
 
-
-//    @Test
-//    void testFoo() throws SQLException {
-//        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass");
-//             TarantoolConnection con = new TarantoolConnection(client);
-//             TarantoolStatement st = con.createStatement()) {
-//            client.evalFully("box.space.javatest:drop()");
-//            client.evalFully("box.schema.space.create('JAVATEST')");
-//            client.evalFully("box.space.JAVATEST:format('primary', {type = 'hash', parts = {1, 'num'}})");
-//            client.evalFully("box.space.JAVATEST:create_index('primary', {type = 'hash', parts = {1, 'num'}})");
-//            try (ResultSet res = st.executeQuery("select * from JAVATEST")) {
-//
-//            }
-//
-//        }
-//    }
-
-
     @Test
     void testSimple() throws SQLException {
 

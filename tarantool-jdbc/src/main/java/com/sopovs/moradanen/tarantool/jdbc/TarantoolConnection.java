@@ -306,13 +306,20 @@ public class TarantoolConnection implements Connection {
 
     @Override
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
-
+        try {
+            client.setNetworkTimeout(milliseconds);
+        } catch (TarantoolException e) {
+            throw new SQLException(e);
+        }
     }
 
     @Override
     public int getNetworkTimeout() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        try {
+            return client.getNetworkTimeout();
+        } catch (TarantoolException e) {
+            throw new SQLException(e);
+        }
     }
 
 }

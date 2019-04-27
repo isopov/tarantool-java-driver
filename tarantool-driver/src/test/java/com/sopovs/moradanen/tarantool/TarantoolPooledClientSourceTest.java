@@ -357,6 +357,16 @@ class TarantoolPooledClientSourceTest {
         public String getVersion() {
             throw new TarantoolException("Not implemented!");
         }
+
+        @Override
+        public void setNetworkTimeout(int milliseconds) {
+            throw new TarantoolException("Not implemented!");
+        }
+
+        @Override
+        public int getNetworkTimeout() {
+            throw new TarantoolException("Not implemented!");
+        }
     }
 
     static class DummyCreationThrowingClient extends DummyTarantoolClient {

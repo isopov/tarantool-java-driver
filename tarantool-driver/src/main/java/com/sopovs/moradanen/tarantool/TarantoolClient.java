@@ -142,4 +142,7 @@ public interface TarantoolClient extends Closeable {
 
     int[] executeBatchUpdate();
 
+    void setNetworkTimeout(int milliseconds);
+
+    int getNetworkTimeout();
 }

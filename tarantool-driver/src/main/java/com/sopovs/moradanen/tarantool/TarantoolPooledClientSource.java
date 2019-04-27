@@ -419,6 +419,18 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
             return client.getVersion();
         }
 
+        @Override
+        public void setNetworkTimeout(int milliseconds) {
+            checkClosed();
+            client.setNetworkTimeout(0);
+        }
+
+        @Override
+        public int getNetworkTimeout() {
+            checkClosed();
+            return client.getNetworkTimeout();
+        }
+
         private void checkClosed() {
             if (closed) {
                 throw new TarantoolException(CONNECTION_CLOSED);

@@ -67,6 +67,14 @@ class TarantoolClientImplExceptionsTest {
     }
 
     @Test
+    void testNetworkTimeout() {
+        try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
+            client.setNetworkTimeout(1);
+            assertThrows(TarantoolException.class, () -> client.evalFully("require('fiber').sleep(1)"));
+        }
+    }
+
+    @Test
     void testClosedPing() {
         try (TarantoolClient client = new TarantoolClientImpl("localhost")) {
             client.close();

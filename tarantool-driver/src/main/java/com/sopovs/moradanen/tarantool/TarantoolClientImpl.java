@@ -10,6 +10,7 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -177,6 +178,24 @@ public class TarantoolClientImpl implements TarantoolClient {
     public int executeUpdate() {
         finishQueryWithArguments();
         return getUpdateResult();
+    }
+
+    @Override
+    public void setNetworkTimeout(int milliseconds) {
+        try {
+            socket.setSoTimeout(milliseconds);
+        } catch (SocketException e) {
+            throw new TarantoolException(e);
+        }
+    }
+
+    @Override
+    public int getNetworkTimeout() {
+        try {
+            return socket.getSoTimeout();
+        } catch (SocketException e) {
+            throw new TarantoolException(e);
+        }
     }
 
     private int getUpdateResult() {
