@@ -37,7 +37,7 @@ public class SqlResult extends AbstractResult {
         int metadataSize = unpacker.unpackArrayHeader();
         for (int i = 0; i < metadataSize; i++) {
             int fieldMetadataSize = unpacker.unpackMapHeader();
-            if (fieldMetadataSize != 1 && fieldMetadataSize != 2) {
+            if (fieldMetadataSize != 2) {
                 throw new TarantoolException("Field metadata size is " + fieldMetadataSize);
             }
             int fieldName = unpacker.unpackInt();
@@ -45,13 +45,11 @@ public class SqlResult extends AbstractResult {
                 throw new TarantoolException("Expected FIELD_NAME(" + Util.KEY_FIELD_NAME + "), but got " + fieldName);
             }
             fieldNames.put(unpacker.unpackString(), i);
-            if (fieldMetadataSize == 2) {
-                int fieldType = unpacker.unpackInt();
-                if (fieldType != Util.KEY_FIELD_TYPE) {
-                    throw new TarantoolException("Expected FIELD_TYPE(" + Util.KEY_FIELD_TYPE + "), but got " + fieldName);
-                }
-                unpacker.unpackString(); //TODO use somewhere?
+            int fieldType = unpacker.unpackInt();
+            if (fieldType != Util.KEY_FIELD_TYPE) {
+                throw new TarantoolException("Expected FIELD_TYPE(" + Util.KEY_FIELD_TYPE + "), but got " + fieldName);
             }
+            unpacker.unpackString(); //TODO use somewhere?
         }
         int data = unpacker.unpackInt();
         if (data != Util.KEY_DATA) {
