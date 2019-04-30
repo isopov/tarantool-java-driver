@@ -4,7 +4,7 @@ public class TestUtil {
 
     public static String getEnvTarantoolVersion() {
         String version = System.getenv("TARANTOOL_VERSION");
-        return version == null ? "2.1" : version;
+        return version == null ? "2" : version;
     }
 
 }

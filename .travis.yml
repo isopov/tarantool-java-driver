@@ -18,7 +18,9 @@ jobs:
     - env: TARANTOOL_VERSION=1.6
     - env: TARANTOOL_VERSION=1.7
     - env: TARANTOOL_VERSION=1.9
+    - env: TARANTOOL_VERSION=1
     - env: TARANTOOL_VERSION=2.1
+    - env: TARANTOOL_VERSION=2
 
 before_script: docker run -p3301:3301 -e TARANTOOL_USER_NAME=admin -e TARANTOOL_USER_PASSWORD=javapass -d tarantool/tarantool:$TARANTOOL_VERSION
 

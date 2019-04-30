@@ -20,7 +20,7 @@ class TarantoolConnectionTest {
 
     @BeforeAll
     static void setup() {
-        assumeTrue(getEnvTarantoolVersion().startsWith("2.1"));
+        assumeTrue(getEnvTarantoolVersion().startsWith("2"));
     }
 
 

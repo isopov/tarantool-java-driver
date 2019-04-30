@@ -2,7 +2,7 @@
 [![CircleCI Build Status](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master.svg?style=svg)](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master)
 
 This connector is not used anywhere in production alternative to official Tarantool java connector that can be found at https://github.com/tarantool/tarantool-java
-It has extensive test suite and tests are run regularly (on every push) on 4 Tarantool versions - 1.6, 1.7, 1.9 and 2.1 on Travis and on 2.1 version on CircleCi
+It has extensive test suite and tests are run regularly (on every push) on several Tarantool versions
 
 Pros (why this connector is better):
 * (This list was larger - official connector addressed some issues)
@@ -19,7 +19,7 @@ Cons (why oficial connector is better)
 * Java 6 support
 
 # Building
-* Run tarantool from docker: `docker run -p 3301:3301 --rm -t -i -e TARANTOOL_USER_NAME=admin -e TARANTOOL_USER_PASSWORD=javapass tarantool/tarantool:2.1`
+* Run tarantool from docker: `docker run -p 3301:3301 --rm -t -i -e TARANTOOL_USER_NAME=admin -e TARANTOOL_USER_PASSWORD=javapass tarantool/tarantool:2`
 * `./mvnw clean verify`
 
 # Getting started

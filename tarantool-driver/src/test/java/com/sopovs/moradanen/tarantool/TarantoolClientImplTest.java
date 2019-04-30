@@ -433,7 +433,7 @@ class TarantoolClientImplTest {
     }
 
     static void sqlTest(Consumer<TarantoolClient> work) {
-        assumeTrue(getEnvTarantoolVersion().startsWith("2.1"));
+        assumeTrue(getEnvTarantoolVersion().startsWith("2"));
         try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
             client.sql("CREATE TABLE TABLE1 (COLUMN1 INTEGER PRIMARY KEY, COLUMN2 VARCHAR(100))");
             assertEquals(1L, client.executeUpdate());
