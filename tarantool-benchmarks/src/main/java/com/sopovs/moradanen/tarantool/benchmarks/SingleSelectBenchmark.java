@@ -13,36 +13,45 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-//Benchmark                                            (size)        Score          Error   Units
-//SelectBenchmark.client                                    1       60.051 ±       19.458   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm                1      747.871 ±       64.017    B/op
-//SelectBenchmark.client                                  100      109.769 ±       32.617   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm              100    46345.007 ±       37.999    B/op
-//SelectBenchmark.client                                10000     4528.870 ±      927.183   us/op
-//SelectBenchmark.client:·gc.alloc.rate.norm            10000  4838856.987 ±       68.005    B/op
+//Benchmark                                                          size)         Score          Error   Units
+//SingleSelectBenchmark.client                                           1        57.178 ±        5.543   us/op
+//SingleSelectBenchmark.client:·gc.alloc.rate.norm                       1      1031.907 ±        3.963    B/op
+//SingleSelectBenchmark.client                                         100        90.037 ±        9.848   us/op
+//SingleSelectBenchmark.client:·gc.alloc.rate.norm                     100     54548.157 ±       42.209    B/op
+//SingleSelectBenchmark.client                                       10000      3140.693 ±     1011.209   us/op
+//SingleSelectBenchmark.client:·gc.alloc.rate.norm                   10000   5640838.005 ±       32.307    B/op
 //
-//SelectBenchmark.jdbc                                      1      136.829 ±       28.282   us/op
-//SelectBenchmark.jdbc:·gc.alloc.rate.norm                  1     1492.178 ±        1.795    B/op
-//SelectBenchmark.jdbc                                    100      269.950 ±       54.267   us/op
-//SelectBenchmark.jdbc:·gc.alloc.rate.norm                100    48052.161 ±        3.890    B/op
-//SelectBenchmark.jdbc                                  10000    13743.088 ±     3963.558   us/op
-//SelectBenchmark.jdbc:·gc.alloc.rate.norm              10000  4488546.439 ±      231.620    B/op
+//SingleSelectBenchmark.jdbc                                             1        71.664 ±       13.217   us/op
+//SingleSelectBenchmark.jdbc:·gc.alloc.rate.norm                         1      1622.329 ±        6.379    B/op
+//SingleSelectBenchmark.jdbc                                           100       159.138 ±      211.577   us/op
+//SingleSelectBenchmark.jdbc:·gc.alloc.rate.norm                       100     54372.200 ±        1.983    B/op
+//SingleSelectBenchmark.jdbc                                         10000      6888.826 ±     3551.356   us/op
+//SingleSelectBenchmark.jdbc:·gc.alloc.rate.norm                     10000   5770314.266 ±       41.093    B/op
 //
-//SelectBenchmark.referenceClient                           1       93.135 ±       27.792   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm       1    10209.644 ±     8871.899    B/op
-//SelectBenchmark.referenceClient                         100      165.087 ±       41.909   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm     100    98612.903 ±   199166.349    B/op
-//SelectBenchmark.referenceClient                       10000     5261.139 ±     1107.887   us/op
-//SelectBenchmark.referenceClient:·gc.alloc.rate.norm   10000  9190418.672 ± 19769946.733    B/op
+//SingleSelectBenchmark.upstreamConnection                               1        79.236 ±       30.518   us/op
+//SingleSelectBenchmark.upstreamConnection:·gc.alloc.rate.norm           1     12224.092 ±        0.480    B/op
+//SingleSelectBenchmark.upstreamConnection                             100       390.002 ±       75.460   us/op
+//SingleSelectBenchmark.upstreamConnection:·gc.alloc.rate.norm         100    129064.461 ±        2.542    B/op
+//SingleSelectBenchmark.upstreamConnection                           10000     36831.683 ±     3929.321   us/op
+//SingleSelectBenchmark.upstreamConnection:·gc.alloc.rate.norm       10000  12598251.881 ±      281.982    B/op
 //
-//SelectBenchmark.connection                                1       85.325 ±       11.463   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm            1    11760.055 ±        0.148    B/op
-//SelectBenchmark.connection                              100      358.742 ±       36.729   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm          100   129392.232 ±        0.626    B/op
-//SelectBenchmark.connection                            10000    36867.034 ±     3317.009   us/op
-//SelectBenchmark.connection:·gc.alloc.rate.norm        10000  2677735.898 ±      134.961    B/op
+//SingleSelectBenchmark.upstreamClient                                   1        73.421 ±        9.820   us/op
+//SingleSelectBenchmark.upstreamClient:·gc.alloc.rate.norm               1     10640.085 ±     8816.478    B/op
+//SingleSelectBenchmark.upstreamClient                                 100       117.286 ±       98.430   us/op
+//SingleSelectBenchmark.upstreamClient:·gc.alloc.rate.norm             100     98409.737 ±   197746.872    B/op
+//SingleSelectBenchmark.upstreamClient                               10000      3411.124 ±       68.027   us/op
+//SingleSelectBenchmark.upstreamClient:·gc.alloc.rate.norm           10000   9126879.306 ± 19632126.260    B/op
+//
+//SingleSelectBenchmark.upstreamJdbc                                     1        96.783 ±        1.420   us/op
+//SingleSelectBenchmark.upstreamJdbc:·gc.alloc.rate.norm                 1     16872.114 ±        0.632    B/op
+//SingleSelectBenchmark.upstreamJdbc                                   100       462.498 ±       91.592   us/op
+//SingleSelectBenchmark.upstreamJdbc:·gc.alloc.rate.norm               100    137456.603 ±        2.907    B/op
+//SingleSelectBenchmark.upstreamJdbc                                 10000     40162.712 ±      896.595   us/op
+//SingleSelectBenchmark.upstreamJdbc:·gc.alloc.rate.norm             10000  13011867.503 ±      318.996    B/op
+
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
 @State(Scope.Benchmark)
@@ -56,6 +65,7 @@ public class SingleSelectBenchmark {
     private TarantoolClientSource clientSource;
     private TarantoolTemplate template;
     private Connection jdbcConnection;
+    private Connection upstreamJdbcConnection;
     private int space;
 
     @Param({"1", "100", "10000"})
@@ -73,6 +83,7 @@ public class SingleSelectBenchmark {
 
         template = new TarantoolTemplate(clientSource);
         jdbcConnection = new com.sopovs.moradanen.tarantool.jdbc.TarantoolConnection(new TarantoolClientImpl("localhost", 3301, "admin", "javapass"));
+        upstreamJdbcConnection = new org.tarantool.jdbc.SQLDriver().connect("tarantool://localhost:3301?user=admin&password=javapass", new Properties());
         setupData();
 
     }
@@ -95,8 +106,16 @@ public class SingleSelectBenchmark {
 
     @Benchmark
     public List<Foo> jdbc() throws SQLException {
+        return jdbcInternal(jdbcConnection);
+    }
+
+    @Benchmark
+    public List<Foo> upstreamJdbc() throws SQLException {
+       return jdbcInternal(upstreamJdbcConnection);
+    }
+    public List<Foo> jdbcInternal(Connection con) throws SQLException {
         List<Foo> result = new ArrayList<>();
-        try (PreparedStatement pst = jdbcConnection.prepareStatement("SELECT * FROM JDBCBENCHMARK");
+        try (PreparedStatement pst = con.prepareStatement("SELECT * FROM JDBCBENCHMARK");
              ResultSet res = pst.executeQuery()) {
             while (res.next()) {
                 result.add(new Foo(res.getInt(1), res.getString(2)));
@@ -104,6 +123,7 @@ public class SingleSelectBenchmark {
         }
         return result;
     }
+
 
     @Benchmark
     public List<Foo> client() {
@@ -129,12 +149,12 @@ public class SingleSelectBenchmark {
     }
 
     @Benchmark
-    public List<?> connection() {
+    public List<?> upstreamConnection() {
         return connection.select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE, Iter.ALL.getValue());
     }
 
     @Benchmark
-    public List<?> referenceClient() {
+    public List<?> upstreamClient() {
         return referenceClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
                 Iter.ALL.getValue());
     }

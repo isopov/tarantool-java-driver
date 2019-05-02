@@ -28,7 +28,7 @@ class ConcurrentSelectBenchmarkTest {
 
     @Test
     void testReferenceClient() throws Exception {
-        benchmark.type = "referenceClient";
+        benchmark.type = "upstreamClient";
         benchmark.setup();
         assertTrue(benchmark.referenceClient().startsWith("FooBar"));
     }
@@ -50,7 +50,7 @@ class ConcurrentSelectBenchmarkTest {
 
     @Test
     void testReferenceClientAll() throws Exception {
-        benchmark.type = "referenceClient";
+        benchmark.type = "upstreamClient";
         benchmark.setup();
         assertEquals(expectedAll(), benchmark.referenceClientAll());
     }

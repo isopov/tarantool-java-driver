@@ -32,17 +32,22 @@ class SingleSelectBenchmarkTest {
 
     @Test
     void testReferenceClient() {
-        assertEquals(33, benchmark.referenceClient().size());
+        assertEquals(33, benchmark.upstreamClient().size());
     }
 
     @Test
     void testConnection() {
-        assertEquals(33, benchmark.connection().size());
+        assertEquals(33, benchmark.upstreamConnection().size());
     }
 
     @Test
     void testJdbc() throws SQLException {
         assertEquals(33, benchmark.jdbc().size());
+    }
+
+    @Test
+    void testUpstreamJdbc() throws SQLException {
+        assertEquals(33, benchmark.upstreamJdbc().size());
     }
 
     @AfterEach

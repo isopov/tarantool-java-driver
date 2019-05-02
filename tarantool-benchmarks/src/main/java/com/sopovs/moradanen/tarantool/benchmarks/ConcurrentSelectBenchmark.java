@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 //Benchmark                                        (type)  Mode  Cnt      Score     Error  Units
-//ConcurrentSelectBenchmark.select        referenceClient  avgt   15    135.715 ±   0.819  us/op
+//ConcurrentSelectBenchmark.select         upstreamClient  avgt   15    135.715 ±   0.819  us/op
 //ConcurrentSelectBenchmark.select     pooledClientSource  avgt   15    181.730 ±   1.669  us/op
 //ConcurrentSelectBenchmark.select            threadLocal  avgt   15    180.817 ±   1.310  us/op
-//ConcurrentSelectBenchmark.selectAll     referenceClient  avgt   15  41187.509 ± 522.923  us/op
+//ConcurrentSelectBenchmark.selectAll      upstreamClient  avgt   15  41187.509 ± 522.923  us/op
 //ConcurrentSelectBenchmark.selectAll  pooledClientSource  avgt   15  13861.497 ± 181.352  us/op
 //ConcurrentSelectBenchmark.selectAll         threadLocal  avgt   15  14099.695 ± 125.618  us/op
 
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 100usec`
 //(To restore `sudo tc qdisc del dev lo root`)
 //Benchmark                                     (type)  Mode  Cnt    Score     Error  Units
-//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  641.152 ± 160.129  us/op
+//ConcurrentSelectBenchmark.select      upstreamClient  avgt   15  641.152 ± 160.129  us/op
 //ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  314.228 ±   0.637  us/op
 //ConcurrentSelectBenchmark.select         threadLocal  avgt   15  312.966 ±   1.134  us/op
 
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 1msec`
 //(To restore `sudo tc qdisc del dev lo root`)
 //Benchmark                                     (type)  Mode  Cnt     Score    Error  Units
-//ConcurrentSelectBenchmark.select     referenceClient  avgt   15  5348.508 ± 69.763  us/op
+//ConcurrentSelectBenchmark.select      upstreamClient  avgt   15  5348.508 ± 69.763  us/op
 //ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2668.494 ± 42.226  us/op
 //ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2657.087 ± 53.612  us/op
 
@@ -53,7 +53,7 @@ public class ConcurrentSelectBenchmark {
 
     private static final String THREAD_LOCAL = "threadLocal";
     private static final String POOLED_CLIENT_SOURCE = "pooledClientSource";
-    private static final String REFERENCE_CLIENT = "referenceClient";
+    private static final String REFERENCE_CLIENT = "upstreamClient";
     int size = 10000;
     private org.tarantool.TarantoolClient referenceClient;
     private TarantoolClientSource clientSource;
