@@ -4,6 +4,7 @@ import com.sopovs.moradanen.tarantool.core.*;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Function;
 
 //TODO lazy clients creation and closing clients that are stale for too long
@@ -13,17 +14,45 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
     static final String POOL_CLOSED = "Pool is closed";
 
     private boolean poolClosed = false;
-    private final ArrayDeque<TarantoolClient> pool;
+    private final ArrayDeque<IndexedTarantoolClient> pool;
     private final int size;
     private int currentSize;
-    private final TarantoolConfig config;
+    private final TarantoolConfig[] configs;
+    private final int[] sizes;
+    private final int[] currentSizes;
     private final Function<TarantoolConfig, TarantoolClient> clientFactory;
+
+    public TarantoolPooledClientSource(Map<TarantoolConfig, Integer> configs) {
+        this(configs, TarantoolClientImpl::new);
+    }
+
+    public TarantoolPooledClientSource(Map<TarantoolConfig, Integer> configSizes, Function<TarantoolConfig, TarantoolClient> clientFactory) {
+        sizes = new int[configSizes.size()];
+
+        currentSizes = new int[configSizes.size()];
+        configs = new TarantoolConfig[configSizes.size()];
+        int i = 0, totalSize = 0;
+
+        for (Map.Entry<TarantoolConfig, Integer> configSize : configSizes.entrySet()) {
+            sizes[i] = configSize.getValue();
+            totalSize += sizes[i];
+            configs[i] = configSize.getKey();
+            i++;
+        }
+
+        this.clientFactory = clientFactory;
+        this.size = totalSize;
+        this.pool = new ArrayDeque<>(totalSize);
+
+    }
 
     public TarantoolPooledClientSource(TarantoolConfig config, Function<TarantoolConfig, TarantoolClient> clientFactory,
                                        int size) {
-        this.config = config;
+        this.configs = new TarantoolConfig[]{config};
         this.clientFactory = clientFactory;
         this.size = size;
+        this.sizes = new int[]{size};
+        this.currentSizes = new int[]{0};
         this.pool = new ArrayDeque<>(size);
     }
 
@@ -44,18 +73,25 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
     public TarantoolClient getClient() {
         synchronized (pool) {
             while (!poolClosed) {
-                TarantoolClient client = pool.pollFirst();
+                IndexedTarantoolClient client = pool.pollFirst();
                 if (client != null) {
                     return new TarantoolClientProxy(client);
                 }
                 if (currentSize < size) {
-                    currentSize++;
-                    try {
-                        return new TarantoolClientProxy(clientFactory.apply(config));
-                    } catch (TarantoolException creationException) {
-                        currentSize--;
-                        throw creationException;
+                    for (int i = 0; i < configs.length; i++) {
+                        if (currentSizes[i] < sizes[i]) {
+                            try {
+                                currentSize++;
+                                currentSizes[i]++;
+                                return new TarantoolClientProxy(new IndexedTarantoolClient(clientFactory.apply(configs[i]), i));
+                            } catch (TarantoolException creationException) {
+                                currentSize--;
+                                currentSizes[i]--;
+                                throw creationException;
+                            }
+                        }
                     }
+                    throw new IllegalStateException("currentSize does not sum curentSizes");
                 }
                 try {
                     pool.wait();
@@ -72,10 +108,10 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         synchronized (pool) {
             poolClosed = true;
             TarantoolException poolCloseException = null;
-            for (Iterator<TarantoolClient> iterator = pool.iterator(); iterator.hasNext(); ) {
-                TarantoolClient client = iterator.next();
+            for (Iterator<IndexedTarantoolClient> iterator = pool.iterator(); iterator.hasNext(); ) {
+                IndexedTarantoolClient client = iterator.next();
                 try {
-                    client.close();
+                    client.client.close();
                 } catch (TarantoolException e) {
                     if (poolCloseException == null) {
                         poolCloseException = new TarantoolException("Problem closing pooled client(s)");
@@ -92,8 +128,18 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
 
     }
 
-    private final class TarantoolClientProxy implements TarantoolClient {
+    private static final class IndexedTarantoolClient {
         private final TarantoolClient client;
+        private final int config;
+
+        private IndexedTarantoolClient(TarantoolClient client, int config) {
+            this.client = client;
+            this.config = config;
+        }
+    }
+
+    private final class TarantoolClientProxy implements TarantoolClient {
+        private final IndexedTarantoolClient client;
         private boolean closed = false;
         @Nullable
         private Result lastResult;
@@ -111,7 +157,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
                 }
                 closed = true;
                 if (poolClosed) {
-                    client.close();
+                    client.client.close();
                 } else {
                     if (lastResult != null && lastResult.hasNext()) {
                         lastResult.close();
@@ -127,18 +173,20 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
             synchronized (pool) {
                 closed = true;
                 assert currentSize > 0;
+                assert currentSizes[client.config] > 0;
                 currentSize--;
+                currentSizes[client.config]--;
                 pool.notify();
             }
             try {
-                client.close();
+                client.client.close();
             } catch (TarantoolException closeException) {
                 e.addSuppressed(closeException);
             }
             return e;
         }
 
-        TarantoolClientProxy(TarantoolClient client) {
+        TarantoolClientProxy(IndexedTarantoolClient client) {
             this.client = client;
         }
 
@@ -146,7 +194,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public Result execute() {
             checkClosed();
             try {
-                return lastResult = client.execute();
+                return lastResult = client.client.execute();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -156,7 +204,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void addBatch() {
             checkClosed();
             try {
-                client.addBatch();
+                client.client.addBatch();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -166,7 +214,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public int[] executeBatchUpdate() {
             checkClosed();
             try {
-                return client.executeBatchUpdate();
+                return client.client.executeBatchUpdate();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -176,7 +224,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void executeBatch() {
             checkClosed();
             try {
-                client.executeBatch();
+                client.client.executeBatch();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -186,7 +234,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void select(int space, int index, int limit, int offset, Iter iterator) {
             checkClosed();
             try {
-                client.select(space, index, limit, offset, iterator);
+                client.client.select(space, index, limit, offset, iterator);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -196,7 +244,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void selectAll(int space, int limit, int offset) {
             checkClosed();
             try {
-                client.selectAll(space, limit, offset);
+                client.client.selectAll(space, limit, offset);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -206,7 +254,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void eval(String expression) {
             checkClosed();
             try {
-                client.eval(expression);
+                client.client.eval(expression);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -216,7 +264,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void insert(int space) {
             checkClosed();
             try {
-                client.insert(space);
+                client.client.insert(space);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -226,7 +274,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void replace(int space) {
             checkClosed();
             try {
-                client.replace(space);
+                client.client.replace(space);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -236,7 +284,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void delete(int space, int index) {
             checkClosed();
             try {
-                client.delete(space, index);
+                client.client.delete(space, index);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -246,7 +294,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void update(int space, int index) {
             checkClosed();
             try {
-                client.update(space, index);
+                client.client.update(space, index);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -256,7 +304,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void upsert(int space) {
             checkClosed();
             try {
-                client.upsert(space);
+                client.client.upsert(space);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -266,7 +314,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void change(IntOp op, int field, int arg) {
             checkClosed();
             try {
-                client.change(op, field, arg);
+                client.client.change(op, field, arg);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -276,7 +324,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void change(IntOp op, int field, long arg) {
             checkClosed();
             try {
-                client.change(op, field, arg);
+                client.client.change(op, field, arg);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -287,7 +335,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void change(Op op, int field, @Nullable String arg) {
             checkClosed();
             try {
-                client.change(op, field, arg);
+                client.client.change(op, field, arg);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -298,7 +346,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void change(Op op, int field, byte[] arg) {
             checkClosed();
             try {
-                client.change(op, field, arg);
+                client.client.change(op, field, arg);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -308,7 +356,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void sql(String sqlQuery) {
             checkClosed();
             try {
-                client.sql(sqlQuery);
+                client.client.sql(sqlQuery);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -318,7 +366,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public int executeUpdate() {
             checkClosed();
             try {
-                return client.executeUpdate();
+                return client.client.executeUpdate();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -328,7 +376,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void ping() {
             checkClosed();
             try {
-                client.ping();
+                client.client.ping();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -338,7 +386,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setInt(int val) {
             checkClosed();
             try {
-                client.setInt(val);
+                client.client.setInt(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -348,7 +396,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setString(@Nullable String val) {
             checkClosed();
             try {
-                client.setString(val);
+                client.client.setString(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -358,7 +406,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setNull() {
             checkClosed();
             try {
-                client.setNull();
+                client.client.setNull();
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -368,7 +416,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setBoolean(boolean val) {
             checkClosed();
             try {
-                client.setBoolean(val);
+                client.client.setBoolean(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -377,7 +425,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         @Override
         public void setDouble(double val) {
             try {
-                client.setDouble(val);
+                client.client.setDouble(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -387,7 +435,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setFloat(float val) {
             checkClosed();
             try {
-                client.setFloat(val);
+                client.client.setFloat(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -397,7 +445,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setLong(long val) {
             checkClosed();
             try {
-                client.setLong(val);
+                client.client.setLong(val);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -407,7 +455,7 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         public void setBytes(byte[] bytes) {
             checkClosed();
             try {
-                client.setBytes(bytes);
+                client.client.setBytes(bytes);
             } catch (TarantoolException e) {
                 throw closeOnException(e);
             }
@@ -416,19 +464,19 @@ public class TarantoolPooledClientSource implements TarantoolClientSource {
         @Override
         public String getVersion() {
             checkClosed();
-            return client.getVersion();
+            return client.client.getVersion();
         }
 
         @Override
         public void setNetworkTimeout(int milliseconds) {
             checkClosed();
-            client.setNetworkTimeout(0);
+            client.client.setNetworkTimeout(0);
         }
 
         @Override
         public int getNetworkTimeout() {
             checkClosed();
-            return client.getNetworkTimeout();
+            return client.client.getNetworkTimeout();
         }
 
         private void checkClosed() {

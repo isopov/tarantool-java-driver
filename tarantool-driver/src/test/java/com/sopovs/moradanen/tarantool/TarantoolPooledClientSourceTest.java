@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -33,6 +34,15 @@ class TarantoolPooledClientSourceTest {
         return new TarantoolPooledClientSource(DUMMY_CONFIG, DummyTarantoolClient::new, size);
     }
 
+    private TarantoolPooledClientSource createdReplicatedPool() {
+        return new TarantoolPooledClientSource(new HashMap<TarantoolConfig, Integer>() {{
+            for (int i = 0; i < POOL_SIZE; i++) {
+                put(new TarantoolConfig(null, 0, null, null), 2);
+            }
+        }}, DummyTarantoolClient::new);
+    }
+
+
     @Test
     void releaseWaiterOnPoolClose() throws Exception {
         ExecutorService threadPool = Executors.newFixedThreadPool(POOL_SIZE);
@@ -51,13 +61,9 @@ class TarantoolPooledClientSourceTest {
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
         for (Future<?> future : futures) {
             assertTrue(future.isDone());
-            try {
-                future.get();
-                fail("Exception expected");
-            } catch (ExecutionException e) {
-                assertTrue(e.getCause() instanceof TarantoolException);
-                assertEquals("Pool is closed", e.getCause().getMessage());
-            }
+            ExecutionException e = assertThrows(ExecutionException.class, future::get);
+            assertTrue(e.getCause() instanceof TarantoolException);
+            assertEquals("Pool is closed", e.getCause().getMessage());
         }
     }
 
@@ -69,9 +75,16 @@ class TarantoolPooledClientSourceTest {
     }
 
     @Test
+    void testGetAllReplicaConnections() throws Exception {
+        try (TarantoolClientSource pool = createdReplicatedPool()) {
+            testGetAllConnectionsInternal(pool, POOL_SIZE * 2);
+        }
+    }
+
+    @Test
     void testGetAllConnections() throws Exception {
         try (TarantoolClientSource pool = createPool()) {
-            testGetAllConnectionsInternal(pool);
+            testGetAllConnectionsInternal(pool, POOL_SIZE);
         }
     }
 
@@ -79,19 +92,16 @@ class TarantoolPooledClientSourceTest {
     void testGetAllConnectionsAfterException() throws Exception {
         try (TarantoolClientSource pool = createPool()) {
             try (TarantoolClient client = pool.getClient()) {
-                client.ping();
-                fail("Exception expected");
-            } catch (Exception e) {
-                // no code
+                assertThrows(TarantoolException.class, client::ping);
             }
-            testGetAllConnectionsInternal(pool);
+            testGetAllConnectionsInternal(pool, POOL_SIZE);
         }
     }
 
-    private void testGetAllConnectionsInternal(TarantoolClientSource pool) throws InterruptedException {
-        ExecutorService threadPool = Executors.newFixedThreadPool(POOL_SIZE);
-        CountDownLatch latch = new CountDownLatch(POOL_SIZE);
-        for (int i = 0; i < POOL_SIZE; i++) {
+    private void testGetAllConnectionsInternal(TarantoolClientSource pool, int poolSize) throws InterruptedException {
+        ExecutorService threadPool = Executors.newFixedThreadPool(poolSize);
+        CountDownLatch latch = new CountDownLatch(poolSize);
+        for (int i = 0; i < poolSize; i++) {
             threadPool.execute(() -> {
                 try (TarantoolClient ignored = pool.getClient()) {
                     latch.countDown();

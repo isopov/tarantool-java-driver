@@ -9,38 +9,87 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-//Benchmark                                        (type)  Mode  Cnt      Score     Error  Units
-//ConcurrentSelectBenchmark.select         upstreamClient  avgt   15    135.715 ±   0.819  us/op
-//ConcurrentSelectBenchmark.select     pooledClientSource  avgt   15    181.730 ±   1.669  us/op
-//ConcurrentSelectBenchmark.select            threadLocal  avgt   15    180.817 ±   1.310  us/op
-//ConcurrentSelectBenchmark.selectAll      upstreamClient  avgt   15  41187.509 ± 522.923  us/op
-//ConcurrentSelectBenchmark.selectAll  pooledClientSource  avgt   15  13861.497 ± 181.352  us/op
-//ConcurrentSelectBenchmark.selectAll         threadLocal  avgt   15  14099.695 ± 125.618  us/op
-
+//With the following docker-compose.yml
+//version: '2'
 //
+//services:
+//  tarantool1:
+//    image: tarantool/tarantool:2
+//    environment:
+//      TARANTOOL_REPLICATION: "tarantool1,tarantool2,tarantool3,tarantool4"
+//      TARANTOOL_USER_NAME: "admin"
+//      TARANTOOL_USER_PASSWORD: "javapass"
+//    networks:
+//      - mynet
+//    ports:
+//      - "3301:3301"
+//
+//  tarantool2:
+//    image: tarantool/tarantool:2
+//    environment:
+//      TARANTOOL_REPLICATION: "tarantool1,tarantool2,tarantool3,tarantool4"
+//      TARANTOOL_USER_NAME: "admin"
+//      TARANTOOL_USER_PASSWORD: "javapass"
+//    networks:
+//      - mynet
+//    ports:
+//      - "3302:3301"
+//
+//  tarantool3:
+//    image: tarantool/tarantool:2
+//    environment:
+//      TARANTOOL_REPLICATION: "tarantool1,tarantool2,tarantool3,tarantool4"
+//      TARANTOOL_USER_NAME: "admin"
+//      TARANTOOL_USER_PASSWORD: "javapass"
+//    networks:
+//      - mynet
+//    ports:
+//      - "3303:3301"
+//
+//  tarantool4:
+//    image: tarantool/tarantool:2
+//    environment:
+//      TARANTOOL_REPLICATION: "tarantool1,tarantool2,tarantool3,tarantool4"
+//      TARANTOOL_USER_NAME: "admin"
+//      TARANTOOL_USER_PASSWORD: "javapass"
+//    networks:
+//      - mynet
+//    ports:
+//      - "3304:3301"
+//networks:
+//  mynet:
+//    driver: bridge
+//
+//
+//
+//Benchmark                                                  (type)      Score      Error  Units
+//ConcurrentSelectBenchmark.select                   upstreamClient    147.140 ±    0.985  us/op
+//ConcurrentSelectBenchmark.select               pooledClientSource    212.533 ±    7.965  us/op
+//ConcurrentSelectBenchmark.select     pooledReplicatedClientSource    238.277 ±    3.076  us/op
+//ConcurrentSelectBenchmark.select                      threadLocal    211.266 ±    5.333  us/op
+//ConcurrentSelectBenchmark.selectAll                upstreamClient  43922.911 ± 3978.287  us/op
+//ConcurrentSelectBenchmark.selectAll            pooledClientSource  16110.452 ± 1272.221  us/op
+//ConcurrentSelectBenchmark.selectAll  pooledReplicatedClientSource  15559.695 ± 2023.787  us/op
+//ConcurrentSelectBenchmark.selectAll                   threadLocal  17789.294 ± 2104.801  us/op
 //
 //Simulating network latency of 100 us with
 //`sudo tc qdisc add dev lo root handle 1:0 netem delay 100usec`
 //(To restore `sudo tc qdisc del dev lo root`)
-//Benchmark                                     (type)  Mode  Cnt    Score     Error  Units
-//ConcurrentSelectBenchmark.select      upstreamClient  avgt   15  641.152 ± 160.129  us/op
-//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  314.228 ±   0.637  us/op
-//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  312.966 ±   1.134  us/op
-
-//
-//
-//Simulating network latency of 1ms with
-//`sudo tc qdisc add dev lo root handle 1:0 netem delay 1msec`
-//(To restore `sudo tc qdisc del dev lo root`)
-//Benchmark                                     (type)  Mode  Cnt     Score    Error  Units
-//ConcurrentSelectBenchmark.select      upstreamClient  avgt   15  5348.508 ± 69.763  us/op
-//ConcurrentSelectBenchmark.select  pooledClientSource  avgt   15  2668.494 ± 42.226  us/op
-//ConcurrentSelectBenchmark.select         threadLocal  avgt   15  2657.087 ± 53.612  us/op
+//Benchmark                                                  (type)      Score      Error  Units
+//ConcurrentSelectBenchmark.select                   upstreamClient    612.111 ±   21.962  us/op
+//ConcurrentSelectBenchmark.select               pooledClientSource    367.274 ±   18.223  us/op
+//ConcurrentSelectBenchmark.select     pooledReplicatedClientSource    391.079 ±    3.983  us/op
+//ConcurrentSelectBenchmark.select                      threadLocal    357.235 ±    5.318  us/op
+//ConcurrentSelectBenchmark.selectAll                upstreamClient  49554.083 ± 2024.916  us/op
+//ConcurrentSelectBenchmark.selectAll            pooledClientSource  17479.365 ±  691.103  us/op
+//ConcurrentSelectBenchmark.selectAll  pooledReplicatedClientSource  18850.286 ±  709.923  us/op
+//ConcurrentSelectBenchmark.selectAll                   threadLocal  17089.364 ±  373.411  us/op
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
@@ -50,32 +99,40 @@ import java.util.stream.Collectors;
 @Measurement(iterations = 5, time = 1)
 @Threads(16)
 public class ConcurrentSelectBenchmark {
-
-    private static final String THREAD_LOCAL = "threadLocal";
-    private static final String POOLED_CLIENT_SOURCE = "pooledClientSource";
-    private static final String REFERENCE_CLIENT = "upstreamClient";
+    static final String THREAD_LOCAL = "threadLocal";
+    static final String POOLED_CLIENT_SOURCE = "pooledClientSource";
+    static final String POOLED_REPL_CLIENT_SOURCE = "pooledReplicatedClientSource";
+    static final String UPSTREAM_CLIENT = "upstreamClient";
     int size = 10000;
-    private org.tarantool.TarantoolClient referenceClient;
+    private org.tarantool.TarantoolClient upstreamClient;
     private TarantoolClientSource clientSource;
     private ThreadLocal<TarantoolClient> threadLocalClient;
     private int space;
 
-    @Param({REFERENCE_CLIENT, POOLED_CLIENT_SOURCE, THREAD_LOCAL})
+    @Param({UPSTREAM_CLIENT, POOLED_CLIENT_SOURCE, POOLED_REPL_CLIENT_SOURCE, THREAD_LOCAL})
     public String type;
 
     @Setup
     public void setup() throws Exception {
         switch (type) {
-            case REFERENCE_CLIENT:
+            case UPSTREAM_CLIENT:
                 SocketChannel referenceClientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3301));
                 TarantoolClientConfig tarantoolClientConfig = new TarantoolClientConfig();
                 tarantoolClientConfig.username = "admin";
                 tarantoolClientConfig.password = "javapass";
-                referenceClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
+                upstreamClient = new org.tarantool.TarantoolClientImpl((r, e) -> referenceClientChannel,
                         tarantoolClientConfig);
                 break;
             case POOLED_CLIENT_SOURCE:
                 clientSource = new TarantoolPooledClientSource("localhost", 3301, "admin", "javapass", 16);
+                break;
+            case POOLED_REPL_CLIENT_SOURCE:
+                clientSource = new TarantoolPooledClientSource(new HashMap<TarantoolConfig, Integer>() {{
+                    put(new TarantoolConfig("localhost", 3301, "admin", "javapass"), 4);
+                    put(new TarantoolConfig("localhost", 3302, "admin", "javapass"), 4);
+                    put(new TarantoolConfig("localhost", 3303, "admin", "javapass"), 4);
+                    put(new TarantoolConfig("localhost", 3304, "admin", "javapass"), 4);
+                }});
                 break;
             case THREAD_LOCAL:
                 threadLocalClient = ThreadLocal.withInitial(() -> new TarantoolClientImpl("localhost", "admin", "javapass"));
@@ -98,14 +155,18 @@ public class ConcurrentSelectBenchmark {
             }
             client.executeBatch();
         }
+        if (POOLED_REPL_CLIENT_SOURCE.equals(type)) {
+            Thread.sleep(1000L);
+        }
     }
 
     @Benchmark
     public String select() {
         switch (type) {
-            case REFERENCE_CLIENT:
+            case UPSTREAM_CLIENT:
                 return referenceClient();
             case POOLED_CLIENT_SOURCE:
+            case POOLED_REPL_CLIENT_SOURCE:
                 return clientSource();
             case THREAD_LOCAL:
                 return threadLocal();
@@ -117,9 +178,10 @@ public class ConcurrentSelectBenchmark {
     @Benchmark
     public List<String> selectAll() {
         switch (type) {
-            case REFERENCE_CLIENT:
+            case UPSTREAM_CLIENT:
                 return referenceClientAll();
             case POOLED_CLIENT_SOURCE:
+            case POOLED_REPL_CLIENT_SOURCE:
                 return clientSourceAll();
             case THREAD_LOCAL:
                 return threadLocalAll();
@@ -175,7 +237,7 @@ public class ConcurrentSelectBenchmark {
 
     String referenceClient() {
         int key = ThreadLocalRandom.current().nextInt(size);
-        List<?> result = referenceClient.syncOps().select(space, 0, Collections.singletonList(key), 0,
+        List<?> result = upstreamClient.syncOps().select(space, 0, Collections.singletonList(key), 0,
                 Integer.MAX_VALUE, Iter.EQ.getValue());
         if (result.size() != 1) {
             throw new IllegalStateException();
@@ -184,7 +246,7 @@ public class ConcurrentSelectBenchmark {
     }
 
     List<String> referenceClientAll() {
-        List<?> result = referenceClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
+        List<?> result = upstreamClient.syncOps().select(space, 0, Collections.emptyList(), 0, Integer.MAX_VALUE,
                 Iter.ALL.getValue());
         if (result.size() != size) {
             throw new IllegalStateException();
@@ -197,14 +259,16 @@ public class ConcurrentSelectBenchmark {
     }
 
     @TearDown
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         try (TarantoolClient client = new TarantoolClientImpl("localhost", "admin", "javapass")) {
             client.evalFully("box.space.javabenchmark:drop()").close();
         }
         switch (type) {
-            case REFERENCE_CLIENT:
-                referenceClient.close();
+            case UPSTREAM_CLIENT:
+                upstreamClient.close();
                 break;
+            case POOLED_REPL_CLIENT_SOURCE:
+                Thread.sleep(5000L);
             case POOLED_CLIENT_SOURCE:
                 clientSource.close();
                 break;

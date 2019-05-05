@@ -2,6 +2,7 @@ package com.sopovs.moradanen.tarantool.benchmarks;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -21,21 +22,30 @@ class ConcurrentSelectBenchmarkTest {
 
     @Test
     void testClient() throws Exception {
-        benchmark.type = "pooledClientSource";
+        benchmark.type = ConcurrentSelectBenchmark.POOLED_CLIENT_SOURCE;
         benchmark.setup();
         assertTrue(benchmark.clientSource().startsWith("FooBar"));
     }
 
     @Test
+    @Disabled
+    void testReplicatedClient() throws Exception {
+        benchmark.type = ConcurrentSelectBenchmark.POOLED_REPL_CLIENT_SOURCE;
+        benchmark.setup();
+        assertTrue(benchmark.clientSource().startsWith("FooBar"));
+    }
+
+
+    @Test
     void testReferenceClient() throws Exception {
-        benchmark.type = "upstreamClient";
+        benchmark.type = ConcurrentSelectBenchmark.UPSTREAM_CLIENT;
         benchmark.setup();
         assertTrue(benchmark.referenceClient().startsWith("FooBar"));
     }
 
     @Test
     void testThreadLocal() throws Exception {
-        benchmark.type = "threadLocal";
+        benchmark.type = ConcurrentSelectBenchmark.THREAD_LOCAL;
         benchmark.setup();
         assertTrue(benchmark.threadLocal().startsWith("FooBar"));
     }
@@ -43,21 +53,29 @@ class ConcurrentSelectBenchmarkTest {
 
     @Test
     void testClientAll() throws Exception {
-        benchmark.type = "pooledClientSource";
+        benchmark.type = ConcurrentSelectBenchmark.POOLED_CLIENT_SOURCE;
         benchmark.setup();
         assertEquals(expectedAll(), benchmark.clientSourceAll());
     }
 
     @Test
-    void testReferenceClientAll() throws Exception {
-        benchmark.type = "upstreamClient";
+    @Disabled
+    void testReplicatedClientAll() throws Exception {
+        benchmark.type = ConcurrentSelectBenchmark.POOLED_REPL_CLIENT_SOURCE;
+        benchmark.setup();
+        assertEquals(expectedAll(), benchmark.clientSourceAll());
+    }
+
+    @Test
+    void testUpstreamClientAll() throws Exception {
+        benchmark.type = ConcurrentSelectBenchmark.UPSTREAM_CLIENT;
         benchmark.setup();
         assertEquals(expectedAll(), benchmark.referenceClientAll());
     }
 
     @Test
     void testThreadLocalAll() throws Exception {
-        benchmark.type = "threadLocal";
+        benchmark.type = ConcurrentSelectBenchmark.THREAD_LOCAL;
         benchmark.setup();
         assertEquals(expectedAll(), benchmark.threadLocalAll());
     }
@@ -71,7 +89,7 @@ class ConcurrentSelectBenchmarkTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws InterruptedException {
         benchmark.tearDown();
     }
 }
