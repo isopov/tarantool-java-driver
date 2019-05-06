@@ -15,8 +15,7 @@ Cons (why oficial connector is better)
 * It has working async version
 * Having essentially 1 or 2 public methods API may be considered simplier
 * It is deployed to Maven Central
-* API is certainly more stable - this driver may change in any not foreseeable way 
-* Java 6 support
+* API is certainly more stable - this driver may change in any not foreseeable way
 
 # Building
 * Run tarantool from docker: `docker run -p 3301:3301 --rm -t -i -e TARANTOOL_USER_NAME=admin -e TARANTOOL_USER_PASSWORD=javapass tarantool/tarantool:2`
