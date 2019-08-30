@@ -1,5 +1,6 @@
-[![Build Status](https://travis-ci.org/isopov/tarantool-java-driver.svg?branch=master)](https://travis-ci.org/isopov/tarantool-java-driver)
+[![Travis Build Status](https://travis-ci.org/isopov/tarantool-java-driver.svg?branch=master)](https://travis-ci.org/isopov/tarantool-java-driver)
 [![CircleCI Build Status](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master.svg?style=svg)](https://circleci.com/gh/isopov/tarantool-java-driver/tree/master)
+[![Github Actions Status](https://github.com/isopov/tarantool-java-driver/workflows/CI/badge.svg)](https://github.com/isopov/tarantool-java-driver/actions)
 
 This connector is not used anywhere in production alternative to official Tarantool java connector that can be found at https://github.com/tarantool/tarantool-java
 It has extensive test suite and tests are run regularly (on every push) on several Tarantool versions
